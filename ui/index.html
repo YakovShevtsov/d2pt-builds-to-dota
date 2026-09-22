@@ -77,7 +77,19 @@
   #logBtn[aria-expanded="true"] .chev { transform: rotate(180deg); }
   .log .err { color: var(--bad); } .log .warn { color: var(--accent); } .log .good { color: var(--ok); }
 
-  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; place-items: center; z-index: 10; padding: 16px; }
+  #helpBtn { width: var(--ctl-h); justify-content: center; padding: 0; font-weight: 700; }
+  #helpBtn:hover { color: var(--text); border-color: #4b5361; }
+  .modal.intro { max-width: 520px; padding: 26px 26px 20px; text-align: left; }
+  .intro-logos { display: flex; align-items: center; justify-content: center; gap: 14px; margin-bottom: 18px; }
+  .intro-logos img { width: 46px; height: 46px; object-fit: contain; }
+  .intro-logos img:first-child { border-radius: 10px; }
+  .intro-logos .arrow { color: var(--accent); font-size: 26px; }
+  .modal.intro h2 { text-align: center; font-size: 19px; margin-bottom: 12px; }
+  .steps { margin: 16px 0; padding-left: 22px; color: var(--muted); }
+  .steps li { margin-bottom: 9px; }
+  .steps b { color: var(--text); font-weight: 600; }
+  .modal .muted { font-size: 12.5px; }
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; place-items: center; z-index: 10; padding: 16px; backdrop-filter: blur(3px); }
   .modal-bg.open { display: grid; }
   .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; max-width: 460px; width: 100%; padding: 20px; }
   .modal h2 { margin: 0 0 8px; font-size: 16px; }
@@ -95,6 +107,7 @@
     <span class="chip" id="steamChip"><span class="dot"></span>Steam</span>
     <span class="chip" id="dotaChip"><span class="dot"></span>Dota</span>
     <div class="spacer"></div>
+    <button class="chip" id="helpBtn" title="Что это и как пользоваться">?</button>
     <input type="search" id="search" placeholder="Поиск героя…" autocomplete="off">
   </div>
   <div class="bar" style="padding-top:0">
@@ -137,6 +150,27 @@
     <button class="btn" id="logBtn" title="Показать лог" aria-expanded="false">Лог <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 7.5 6 4l3.5 3.5"/></svg></button>
   </div>
   <pre class="log" id="log"></pre>
+</div>
+
+<div class="modal-bg" id="intro">
+  <div class="modal intro">
+    <div class="intro-logos">
+      <img src="/assets/d2pt.ico" alt="D2PT">
+      <span class="arrow">→</span>
+      <img src="/assets/dota.png" alt="Dota 2">
+    </div>
+    <h2>Сборки с D2PT прямо в Dota</h2>
+    <p>Тулза берёт самые популярные сборки героев с dota2protracker.com (игры 7000+ MMR)
+       и добавляет их в игру как твои гайды: предметы с таймингами, порядок скиллов и таланты.</p>
+    <ol class="steps">
+      <li><b>Выбери героев и позиции.</b> Клик по цифрам 1–5 под героем или по картинке — тогда возьмутся основные позиции.</li>
+      <li><b>Нажми «Применить».</b> Если Steam запущен, тулза предложит закрыть его — так Steam увидит новые гайды.</li>
+      <li><b>Запусти Steam и Dota.</b> У выбранных героев появятся гайды «D2PT Pos 4», «D2PT Pos 5» и т.д.</li>
+    </ol>
+    <p class="muted">После патчей жми «Обновить установленные» — Steam закрывать не нужно, достаточно перезайти в Dota.
+       Твои собственные гайды тулза не трогает.</p>
+    <div class="actions"><button class="btn primary" id="introOk">Понятно, поехали</button></div>
+  </div>
 </div>
 
 <div class="modal-bg" id="modal">
@@ -295,6 +329,13 @@ $('#grid').addEventListener('click', e => {
   } else return;
   render();
 });
+
+// Welcome screen: shown once per browser, reopened from the "?" button.
+const showIntro = on => $('#intro').classList.toggle('open', on);
+$('#introOk').onclick = () => { showIntro(false); store.set('introSeen', true); };
+$('#helpBtn').onclick = () => showIntro(true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { showIntro(false); $('#modal').classList.remove('open'); } });
+if (!store.get('introSeen', false)) showIntro(true);
 
 $('#resetBtn').onclick = () => { selected = new Set(installed); render(); };
 function setLogOpen(open) {

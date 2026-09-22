@@ -7,7 +7,7 @@ const { openBrowserSession } = require('./browser');
 
 const ORIGIN = 'https://dota2protracker.com';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
-const CURL = process.env.SystemRoot ? path.join(process.env.SystemRoot, 'System32', 'curl.exe') : 'curl';
+const CURL = process.env.D2PT_CURL || (process.env.SystemRoot ? path.join(process.env.SystemRoot, 'System32', 'curl.exe') : 'curl');
 const REQUEST_DELAY_MS = 1000;
 const CACHE_TTL_MS = 6 * 3600e3; // D2PT stats refresh slowly; avoid re-requesting the same pages
 
@@ -20,12 +20,27 @@ const isLimited = ({ status, body }) => (status === 403 || status === 429) && !i
 
 class LimitedError extends Error {}
 
+// Common curl exit codes, so a network problem reads as a network problem.
+const CURL_ERRORS = {
+  5: 'не удалось связаться с прокси-сервером',
+  6: 'не удалось определить адрес dota2protracker.com (проблема с DNS или нет интернета)',
+  7: 'не удалось подключиться к dota2protracker.com (блокировка провайдера, файрвол или антивирус)',
+  28: 'сервер не ответил за 30 секунд',
+  35: 'не удалось установить защищённое соединение (часто это антивирус, VPN или блокировка провайдера)',
+  60: 'не удалось проверить сертификат сайта (часто это антивирус с проверкой HTTPS или корпоративный прокси)',
+};
+class TransportError extends Error {}
+
 function curlGet(url) {
   return new Promise((resolve, reject) => {
-    execFile(CURL, ['-s', '-A', UA, '-H', 'Accept: application/json, text/plain, */*', '-w', '\n%{http_code}', url],
+    execFile(CURL, ['-sS', '--max-time', '30', '-A', UA, '-H', 'Accept: application/json, text/plain, */*', '-w', '\n%{http_code}', url],
       { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, windowsHide: true },
-      (err, stdout) => {
-        if (err) return reject(new Error(`curl: ${err.message}`));
+      (err, stdout, stderr) => {
+        if (err) {
+          const code = typeof err.code === 'number' ? err.code : null;
+          const why = (code && CURL_ERRORS[code]) || (stderr || '').trim().split('\n').pop() || err.message;
+          return reject(new TransportError(`не удалось выполнить запрос: ${why}${code ? ` (curl ${code})` : ''}`));
+        }
         const i = stdout.lastIndexOf('\n');
         resolve({ status: Number(stdout.slice(i + 1)), body: stdout.slice(0, i) });
       });
@@ -38,11 +53,21 @@ async function createClient({ mode = 'auto', log = () => {}, cacheDir = null, fr
 
   async function raw(url) {
     if (transport === 'curl') {
-      const r = await curlGet(url);
-      if (!isChallenge(r)) return r;
-      if (mode === 'curl') throw new Error('Cloudflare не пропускает curl, а браузерный режим выключен (--fetch curl)');
-      log('curl не прошёл проверку Cloudflare — переключаюсь на браузер');
-      transport = 'browser';
+      let r;
+      try {
+        r = await curlGet(url);
+      } catch (e) {
+        if (!(e instanceof TransportError)) throw e;
+        if (mode === 'curl') throw new Error(`curl ${e.message}`);
+        log(`curl ${e.message} — пробую через браузер`);
+        transport = 'browser';
+      }
+      if (r) {
+        if (!isChallenge(r)) return r;
+        if (mode === 'curl') throw new Error('Cloudflare не пропускает curl, а браузерный режим выключен (--fetch curl)');
+        log('curl не прошёл проверку Cloudflare — переключаюсь на браузер');
+        transport = 'browser';
+      }
     }
     browser ??= await openBrowserSession(ORIGIN, { log });
     const r = await browser.getText(url);

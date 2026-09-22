@@ -28,13 +28,15 @@ function findBrowsers() {
 }
 
 class Cdp {
-  constructor(wsUrl) { this.ws = new WebSocket(wsUrl); this.id = 0; this.pending = new Map(); }
+  constructor(wsUrl) { this.ws = new WebSocket(wsUrl); this.id = 0; this.pending = new Map(); this.listeners = new Map(); }
+  on(method, cb) { this.listeners.set(method, cb); }
   open() {
     return new Promise((res, rej) => {
       this.ws.onopen = res; this.ws.onerror = () => rej(new Error('CDP connection failed'));
       this.ws.onmessage = e => {
         const m = JSON.parse(e.data);
-        const p = m.id && this.pending.get(m.id);
+        if (!m.id) return this.listeners.get(m.method)?.(m.params);
+        const p = this.pending.get(m.id);
         if (p) { this.pending.delete(m.id); m.error ? p.rej(new Error(m.error.message)) : p.res(m.result); }
       };
     });
@@ -82,15 +84,37 @@ async function openBrowserSession(origin, { log = () => {} } = {}) {
   for (let i = 0; ; i++) {
     const [o, state, title = ''] = String(await cdp.eval(probe).catch(() => '')).split('|');
     if (o === origin && state === 'complete' && !/just a moment|momento|момент/i.test(title)) break;
-    if (i > 60) { cdp.close(); proc.kill(); throw new Error('Cloudflare не пропустил браузер за 30 секунд'); }
+    if (i === 10) log('Жду, пока сайт пропустит браузер (проверка Cloudflare)...');
+    if (i > 120) { cdp.close(); proc.kill(); throw new Error('Сайт не пропустил браузер за 60 секунд. Попробуй позже.'); }
     await sleep(500);
+  }
+
+  const isChallengePage = body => /<!DOCTYPE|Just a moment/i.test(body.slice(0, 2000));
+
+  // Cloudflare answers background requests with its challenge page, which a fetch() can't solve.
+  // Opening the URL as a normal page lets the browser pass the check and show the JSON.
+  let lastStatus = null;
+  cdp.on('Network.responseReceived', p => { if (p.type === 'Document') lastStatus = p.response.status; });
+  await cdp.send('Network.enable');
+
+  async function navigateGet(url) {
+    lastStatus = null;
+    await cdp.send('Page.navigate', { url });
+    for (let i = 0; ; i++) {
+      const [state, title = ''] = String(await cdp.eval('document.readyState + "|" + document.title').catch(() => '')).split('|');
+      if (state === 'complete' && !/just a moment|momento|момент/i.test(title)) break;
+      if (i > 120) throw new Error('Сайт не пропустил браузер за 60 секунд. Попробуй позже.');
+      await sleep(500);
+    }
+    const body = await cdp.eval('document.body.innerText');
+    return { status: lastStatus ?? 200, body };
   }
 
   return {
     name,
     async getText(url) {
       const r = await cdp.eval(`fetch(${JSON.stringify(url)}).then(async r => ({ status: r.status, body: await r.text() }))`);
-      return r;
+      return isChallengePage(r.body) ? navigateGet(url) : r;
     },
     async close() {
       try { await cdp.send('Browser.close'); } catch {}
