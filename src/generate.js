@@ -1,4 +1,6 @@
 // Renders a Dota 2 guide file (.build, GuideFormatVersion 2) from an extracted D2PT build.
+const { t } = require('./i18n');
+
 const DEFAULTS = {
   earlyMaxMin: 13,         // build items bought before this minute -> early game
   coreMaxMin: 33,          // ... before this -> core, after -> late
@@ -11,11 +13,11 @@ const pct = x => Math.round(x * 100) + '%';
 const q = s => String(s).replace(/"/g, "'");
 const hex = n => '0x' + n.toString(16).toUpperCase().padStart(16, '0');
 
-function timingLabel(items, stats) {
+function timingLabel(items, stats, lang) {
   const mins = items.map(i => stats[i]?.min).filter(m => m != null).map(Math.round);
   if (!mins.length) return '';
-  const lo = Math.min(...mins), hi = Math.max(...mins);
-  return lo === hi ? ` (~${lo} мин)` : ` (~${lo}–${hi} мин)`;
+  const lo = Math.min(...mins), hi = Math.max(...mins), min = t(lang, 'guide.min');
+  return lo === hi ? ` (~${lo} ${min})` : ` (~${lo}–${hi} ${min})`;
 }
 
 function pickTalent(options, cfg) {
@@ -25,7 +27,7 @@ function pickTalent(options, cfg) {
   return { pick: best, other: options.find(o => o !== best), byWinrate: best !== popular };
 }
 
-function renderGuide(b, { ts, revision, accountId, config = {} }) {
+function renderGuide(b, { ts, revision, accountId, config = {}, lang = 'ru' }) {
   const cfg = { ...DEFAULTS, ...config };
   const st = b.items;
   const minOf = i => st[i]?.min ?? 99;
@@ -35,31 +37,37 @@ function renderGuide(b, { ts, revision, accountId, config = {} }) {
   const sit = b.situational.filter(i => !b.build.includes(i))
     .sort((x, y) => minOf(x) - minOf(y)).slice(0, cfg.situationalMax);
 
+  const L = (key, vars) => t(lang, 'guide.' + key, vars);
   const sections = [
-    ['Стартовые предметы', b.start],
-    ['Ранняя игра' + timingLabel(early, st), early],
-    ['Основные предметы' + timingLabel(core, st), core],
-    ['Поздняя игра' + timingLabel(late, st), late],
-    ['Ситуативно' + timingLabel(sit, st), sit],
+    [L('secStart'), b.start],
+    [L('secEarly') + timingLabel(early, st, lang), early],
+    [L('secCore') + timingLabel(core, st, lang), core],
+    [L('secLate') + timingLabel(late, st, lang), late],
+    [L('secSituational') + timingLabel(sit, st, lang), sit],
   ].filter(([, list]) => list.length);
 
   const itemTips = {};
   for (const i of [...b.build, ...sit]) {
     const s = st[i];
-    if (s) itemTips[i] = [s.min != null && `~${Math.round(s.min)} мин`, s.pr != null && `берут ${pct(s.pr)}`, s.wr != null && `WR ${pct(s.wr)}`].filter(Boolean).join(' · ');
+    if (s) itemTips[i] = L('itemTip', { min: Math.round(s.min ?? 0), pr: pct(s.pr ?? 0), wr: pct(s.wr ?? 0) });
   }
 
-  const talents = b.talents.map(t => ({ lvl: t.lvl, ...pickTalent(t.options, cfg) }));
+  const talents = b.talents.map(x => ({ lvl: x.lvl, ...pickTalent(x.options, cfg) }));
   const abilityTips = {};
   for (const { pick, other, byWinrate } of talents) {
-    abilityTips[pick.name] = `${byWinrate ? 'Выбран по винрейту' : 'Самый популярный'}: берут ${pct(pick.pr)}, WR ${pct(pick.wr)} (${pick.n} игр). ` +
-      `Альтернатива: ${other.label} — ${pct(other.pr)}, WR ${pct(other.wr)} (${other.n} игр)`;
+    abilityTips[pick.name] = L('talentTip', {
+      how: L(byWinrate ? 'talentByWinrate' : 'talentPopular'),
+      pr: pct(pick.pr), wr: pct(pick.wr), n: pick.n,
+      other: other.label, opr: pct(other.pr), owr: pct(other.wr), on: other.n,
+    });
   }
 
   const posName = `Pos ${b.pos}`;
-  const overview = `Сборка с dota2protracker.com (${posName}, 7000+ MMR, патч ${b.patch}). ` +
-    `Самый популярный билд: ${b.matches} матчей, WR ${pct(b.wr)}. Обновлено ${new Date(ts * 1000).toISOString().slice(0, 10)}. ` +
-    `В подсказках предметов — средний тайминг, частота покупки и винрейт. Таланты выбраны по винрейту (если их берут ≥${pct(cfg.talentMinPickRate)} и ≥${cfg.talentMinMatches} игр), иначе самые популярные.`;
+  const overview = L('overview', {
+    pos: posName, patch: b.patch, matches: b.matches, wr: pct(b.wr),
+    date: new Date(ts * 1000).toISOString().slice(0, 10),
+    talentPr: pct(cfg.talentMinPickRate), talentN: cfg.talentMinMatches,
+  });
 
   const T = n => '\t'.repeat(n);
   const kv = (n, k, v) => `${T(n)}"${k}"\t\t"${q(v)}"\n`;

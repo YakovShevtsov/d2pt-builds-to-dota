@@ -57,7 +57,7 @@ const routes = {
   },
 
   'GET /api/heroes': async (req, res, url) => {
-    try { json(res, 200, await core.getHeroes({ fresh: url.searchParams.get('fresh') === '1' })); }
+    try { json(res, 200, await core.getHeroes({ fresh: url.searchParams.get('fresh') === '1', lang: url.searchParams.get('lang') })); }
     catch (e) { json(res, 502, { error: e.message }); }
   },
 
@@ -66,8 +66,8 @@ const routes = {
     const body = await readBody(req);
     await stream(res, async log => {
       const out = {};
-      if (body.remove?.length) out.remove = await core.remove({ account: body.account, keys: body.remove, closeSteam: !!body.closeSteam }, log);
-      if (body.install?.length) out.install = await core.install({ account: body.account, targets: body.install, closeSteam: !!body.closeSteam }, log);
+      if (body.remove?.length) out.remove = await core.remove({ account: body.account, keys: body.remove, closeSteam: !!body.closeSteam, lang: body.lang }, log);
+      if (body.install?.length) out.install = await core.install({ account: body.account, targets: body.install, closeSteam: !!body.closeSteam, lang: body.lang }, log);
       return out;
     });
   },
@@ -75,7 +75,7 @@ const routes = {
   // body: { account, fresh }
   'POST /api/update': async (req, res) => {
     const body = await readBody(req);
-    await stream(res, log => core.install({ account: body.account, targets: 'installed', fresh: !!body.fresh }, log));
+    await stream(res, log => core.install({ account: body.account, targets: 'installed', fresh: !!body.fresh, lang: body.lang }, log));
   },
 };
 

@@ -3,11 +3,12 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execFileSync } = require('child_process');
+const { t } = require('./i18n');
 
 const STEAMID64_BASE = 76561197960265728n;
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
-function findSteamRoot() {
+function findSteamRoot(lang = 'ru') {
   try {
     const out = execFileSync('reg', ['query', 'HKCU\\Software\\Valve\\Steam', '/v', 'SteamPath'], { encoding: 'utf8', windowsHide: true });
     const m = out.match(/SteamPath\s+REG_SZ\s+(.+)/);
@@ -15,7 +16,7 @@ function findSteamRoot() {
   } catch {}
   const fallback = 'C:\\Program Files (x86)\\Steam';
   if (fs.existsSync(fallback)) return fallback;
-  throw new Error('Не найден Steam');
+  throw new Error(t(lang, 'err.noSteam'));
 }
 
 // Accounts that have Dota 2 data on this PC, most recently logged in first.
@@ -39,15 +40,15 @@ function isProcessRunning(image) {
   } catch { return false; }
 }
 
-async function shutdownSteam(steamRoot, log = () => {}) {
+async function shutdownSteam(steamRoot, log = () => {}, lang = 'ru') {
   if (!isProcessRunning('steam.exe')) return;
-  log('Закрываю Steam...');
+  log(t(lang, 'log.closingSteam'));
   execFileSync(path.join(steamRoot, 'steam.exe'), ['-shutdown'], { windowsHide: true });
   for (let i = 0; i < 60; i++) {
     await sleep(1000);
     if (!isProcessRunning('steam.exe')) return;
   }
-  throw new Error('Steam не закрылся за 60 секунд');
+  throw new Error(t(lang, 'err.steamNotClosed'));
 }
 
 const cachePath = accountDir => path.join(accountDir, 'remotecache.vdf');
@@ -59,7 +60,7 @@ function isRegistered(accountDir, relPath) {
 
 // Adds files as "pending upload" (syncstate 3) so Steam uploads them on next start and
 // Dota lists them. Steam must be closed, otherwise it overwrites the index on exit.
-function registerFiles(accountDir, relPaths) {
+function registerFiles(accountDir, relPaths, lang = 'ru') {
   const f = cachePath(accountDir);
   const text = fs.readFileSync(f, 'utf8');
   const todo = relPaths.filter(p => !text.includes(`"${p}"`));
@@ -78,7 +79,7 @@ function registerFiles(accountDir, relPaths) {
   }).join('');
 
   const anchor = text.match(/^\t"OSType"[^\n]*\n/m) || text.match(/^\{\n/m);
-  if (!anchor) throw new Error('Неожиданный формат remotecache.vdf');
+  if (!anchor) throw new Error(t(lang, 'err.badCache'));
   const at = anchor.index + anchor[0].length;
   fs.writeFileSync(f, text.slice(0, at) + entries + text.slice(at));
   return todo;

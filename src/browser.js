@@ -4,6 +4,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 const { spawn } = require('child_process');
+const { t } = require('./i18n');
 
 const sleep = ms => new Promise(r => setTimeout(r, ms));
 
@@ -54,11 +55,11 @@ class Cdp {
   close() { try { this.ws.close(); } catch {} }
 }
 
-async function openBrowserSession(origin, { log = () => {} } = {}) {
+async function openBrowserSession(origin, { log = () => {}, lang = 'ru' } = {}) {
   const browsers = findBrowsers();
-  if (!browsers.length) throw new Error('Не найден ни один браузер на Chromium (Chrome, Edge, Яндекс, Opera, Brave, Vivaldi)');
+  if (!browsers.length) throw new Error(t(lang, 'err.noBrowser'));
   const { name, exe } = browsers[0];
-  log(`Использую браузер: ${name}`);
+  log(t(lang, 'log.usingBrowser', { name }));
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'd2pt-browser-'));
   const proc = spawn(exe, [
     '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check',
@@ -71,7 +72,7 @@ async function openBrowserSession(origin, { log = () => {} } = {}) {
     await sleep(200);
     if (fs.existsSync(portFile)) port = fs.readFileSync(portFile, 'utf8').split('\n')[0].trim();
   }
-  if (!port) { proc.kill(); throw new Error(`${name} не открыл порт отладки`); }
+  if (!port) { proc.kill(); throw new Error(t(lang, 'err.noDebugPort', { name })); }
 
   const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(r => r.json());
   const page = targets.find(t => t.type === 'page' && t.url.startsWith(origin)) || targets.find(t => t.type === 'page');
@@ -84,8 +85,8 @@ async function openBrowserSession(origin, { log = () => {} } = {}) {
   for (let i = 0; ; i++) {
     const [o, state, title = ''] = String(await cdp.eval(probe).catch(() => '')).split('|');
     if (o === origin && state === 'complete' && !/just a moment|momento|момент/i.test(title)) break;
-    if (i === 10) log('Жду, пока сайт пропустит браузер (проверка Cloudflare)...');
-    if (i > 120) { cdp.close(); proc.kill(); throw new Error('Сайт не пропустил браузер за 60 секунд. Попробуй позже.'); }
+    if (i === 10) log(t(lang, 'log.waitingCloudflare'));
+    if (i > 120) { cdp.close(); proc.kill(); throw new Error(t(lang, 'err.challengeTimeout')); }
     await sleep(500);
   }
 
@@ -103,7 +104,7 @@ async function openBrowserSession(origin, { log = () => {} } = {}) {
     for (let i = 0; ; i++) {
       const [state, title = ''] = String(await cdp.eval('document.readyState + "|" + document.title').catch(() => '')).split('|');
       if (state === 'complete' && !/just a moment|momento|момент/i.test(title)) break;
-      if (i > 120) throw new Error('Сайт не пропустил браузер за 60 секунд. Попробуй позже.');
+      if (i > 120) throw new Error(t(lang, 'err.challengeTimeout'));
       await sleep(500);
     }
     const body = await cdp.eval('document.body.innerText');

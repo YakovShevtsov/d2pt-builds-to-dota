@@ -4,6 +4,7 @@ const path = require('path');
 const { createClient, loadItemNames, extractBuild, LimitedError } = require('./d2pt');
 const { renderGuide } = require('./generate');
 const steam = require('./steam');
+const { t } = require('./i18n');
 
 const ROOT = path.join(__dirname, '..');
 const DATA = path.join(ROOT, 'data');
@@ -29,13 +30,13 @@ function listAccounts(steamRoot) {
   return steam.listAccounts(steamRoot).map((a, i) => ({ ...a, isDefault: i === 0, guides: m.accounts[a.accountId] || {} }));
 }
 
-function findAccount(steamRoot, query) {
+function findAccount(steamRoot, query, lang = 'ru') {
   const accounts = steam.listAccounts(steamRoot);
-  if (!accounts.length) throw new Error('На этом ПК нет аккаунтов Steam с Dota 2');
+  if (!accounts.length) throw new Error(t(lang, 'err.noAccounts'));
   if (query == null || query === '') return accounts[0];
   const want = norm(query);
   const acc = accounts.find(a => String(a.accountId) === String(query) || norm(a.name) === want || norm(a.login) === want);
-  if (!acc) throw new Error(`Аккаунт "${query}" не найден. Доступные: ${accounts.map(a => a.name).join(', ')}`);
+  if (!acc) throw new Error(t(lang, 'err.accountNotFound', { q: query, list: accounts.map(a => a.name).join(', ') }));
   return acc;
 }
 
@@ -48,21 +49,21 @@ function mainPositions(h) {
 }
 
 // Parses CLI specs like "lion:4,5", "shadow shaman", "axe:3" into { npc, pos } targets.
-function resolveSpecs(specs, heroes) {
+function resolveSpecs(specs, heroes, lang = 'ru') {
   const out = [];
   for (const spec of specs) {
     const [name, posPart] = spec.split(':');
     const h = heroes.find(x => norm(x.npc) === norm(name) || norm(x.displayName) === norm(name));
-    if (!h) throw new Error(`Герой "${name}" не найден`);
+    if (!h) throw new Error(t(lang, 'err.heroNotFound', { name }));
     const positions = posPart ? posPart.split(',').map(Number) : mainPositions(h);
-    if (!positions.length || positions.some(p => !(p >= 1 && p <= 5))) throw new Error(`Неверные позиции для ${h.displayName}: ${posPart}`);
+    if (!positions.length || positions.some(p => !(p >= 1 && p <= 5))) throw new Error(t(lang, 'err.badPositions', { hero: h.displayName, positions: posPart }));
     for (const pos of positions) out.push({ npc: h.npc, pos });
   }
   return out;
 }
 
 const makeClient = (opts, log) =>
-  createClient({ mode: opts.fetchMode || 'auto', log, cacheDir: path.join(DATA, 'cache'), fresh: !!opts.fresh });
+  createClient({ mode: opts.fetchMode || 'auto', log, cacheDir: path.join(DATA, 'cache'), fresh: !!opts.fresh, lang: opts.lang });
 
 async function getHeroes(opts = {}, log = () => {}) {
   const client = await makeClient(opts, log);
@@ -77,38 +78,39 @@ async function getHeroes(opts = {}, log = () => {}) {
 
 // Installs/updates guides. targets: [{ npc, pos }] or 'installed' (= update everything we manage).
 // Returns a summary; never throws for a single hero failing.
-async function install({ steamRoot, account, targets, closeSteam = false, dryRun = false, fresh = false, fetchMode }, log = () => {}) {
-  const root = steamRoot || steam.findSteamRoot();
-  const acc = findAccount(root, account);
+async function install({ steamRoot, account, targets, closeSteam = false, dryRun = false, fresh = false, fetchMode, lang = 'ru' }, log = () => {}) {
+  const L = (k, v) => t(lang, k, v);
+  const root = steamRoot || steam.findSteamRoot(lang);
+  const acc = findAccount(root, account, lang);
   const manifest = loadManifest();
   const mine = (manifest.accounts[acc.accountId] ??= {});
   const summary = { account: acc.name, written: [], failed: [], skippedNeedSteamClose: [], registered: 0 };
-  log(`Аккаунт: ${acc.name}${dryRun ? '   [пробный запуск — в Steam ничего не пишется]' : ''}`);
+  log(L('log.account', { name: acc.name }) + (dryRun ? L('log.dryRun') : ''));
 
-  const client = await makeClient({ fresh, fetchMode }, log);
+  const client = await makeClient({ fresh, fetchMode, lang }, log);
   const results = [];
   try {
     const heroes = await client.heroes();
     const list = targets === 'installed' ? Object.keys(mine).map(k => ({ npc: k.split(':')[0], pos: Number(k.split(':')[1]) })) : targets;
-    if (!list.length) { log('Нечего устанавливать.'); return summary; }
+    if (!list.length) { log(L('log.nothingToInstall')); return summary; }
 
-    const itemName = await loadItemNames(path.join(DATA, 'item_ids.json'));
-    log(`Загружаю ${list.length} билд(ов) с D2PT...`);
-    for (const t of list) {
-      const hero = heroes.find(h => h.npc === t.npc);
-      const label = `${hero?.displayName || t.npc} pos ${t.pos}`;
-      if (!hero) { summary.failed.push({ ...t, reason: 'герой не найден на D2PT' }); log(`  ✗ ${label}: герой не найден`); continue; }
+    const itemName = await loadItemNames(path.join(DATA, 'item_ids.json'), lang);
+    log(L('log.loading', { n: list.length }));
+    for (const target of list) {
+      const hero = heroes.find(h => h.npc === target.npc);
+      const label = `${hero?.displayName || target.npc} pos ${target.pos}`;
+      if (!hero) { summary.failed.push({ ...target, reason: 'hero not found' }); log(L('log.heroNotFound', { label })); continue; }
       try {
-        const b = extractBuild(await client.builds(hero.hero_id, t.pos), hero, t.pos, itemName);
+        const b = extractBuild(await client.builds(hero.hero_id, target.pos), hero, target.pos, itemName);
         if (b) results.push(b);
-        else { summary.failed.push({ ...t, reason: 'нет билда для этой позиции' }); log(`  ✗ ${label}: у D2PT нет билда для этой позиции`); }
+        else { summary.failed.push({ ...target, reason: 'no build for this role' }); log(L('log.noBuild', { label })); }
       } catch (e) {
         if (!(e instanceof LimitedError)) throw e;
-        summary.failed.push({ ...t, reason: e.message });
-        log(`  ✗ ${label}: ${e.message}`);
+        summary.failed.push({ ...target, reason: e.message });
+        log(L('log.failed', { label, reason: e.message }));
       }
     }
-    log(`Источник: ${client.transport}.`);
+    log(L('log.source', { transport: client.transport }));
   } finally { await client.close(); }
   if (!results.length) return summary;
 
@@ -126,58 +128,59 @@ async function install({ steamRoot, account, targets, closeSteam = false, dryRun
   let canRegister = true;
   const newOnes = plan.filter(p => p.isNew);
   if (!dryRun && newOnes.length && steam.isProcessRunning('steam.exe')) {
-    if (closeSteam) await steam.shutdownSteam(root, log);
+    if (closeSteam) await steam.shutdownSteam(root, log, lang);
     else {
       canRegister = false;
       summary.skippedNeedSteamClose = newOnes.map(p => ({ npc: p.b.hero, pos: p.b.pos }));
-      log(`! Новые гайды (${newOnes.map(p => `${p.b.heroName} pos ${p.b.pos}`).join(', ')}) можно добавить только при закрытом Steam — пропущены.`);
+      log(L('log.needSteamClosed', { list: newOnes.map(p => `${p.b.heroName} pos ${p.b.pos}`).join(', ') }));
     }
   }
 
   const written = [];
   for (const p of plan) {
     if (p.isNew && !canRegister) continue;
-    const { text, talents } = renderGuide(p.b, { ts: ts++, revision: p.revision, accountId: acc.accountId });
+    const { text, talents } = renderGuide(p.b, { ts: ts++, revision: p.revision, accountId: acc.accountId, lang });
     fs.writeFileSync(path.join(guidesDir, p.file), text, 'utf8');
     written.push(p);
     const tal = talents.map(t => `${t.lvl}${t.byWinrate ? '*' : ''}`).join(' ');
-    log(`  ${p.isNew ? '+ новый   ' : '↻ обновлён'} ${p.b.heroName} pos ${p.b.pos}  (${p.b.patch}, ${p.b.matches} игр, WR ${Math.round(p.b.wr * 100)}%, таланты ${tal})`);
+    log(L('log.guideLine', { mark: L(p.isNew ? 'log.newGuide' : 'log.updatedGuide'), hero: p.b.heroName, pos: p.b.pos, patch: p.b.patch, matches: p.b.matches, wr: Math.round(p.b.wr * 100) + '%', talents: tal }));
     summary.written.push({ npc: p.b.hero, pos: p.b.pos, isNew: p.isNew, file: p.file });
   }
 
-  if (dryRun) { log(`Пробный запуск: файлы в ${guidesDir}`); return summary; }
+  if (dryRun) { log(L('log.dryRunPath', { dir: guidesDir })); return summary; }
 
-  const reg = steam.registerFiles(acc.dir, written.filter(p => p.isNew).map(p => `guides/${p.file}`));
+  const reg = steam.registerFiles(acc.dir, written.filter(p => p.isNew).map(p => `guides/${p.file}`), lang);
   summary.registered = reg.length;
   for (const p of written) mine[p.key] = { file: p.file, revision: p.revision, patch: p.b.patch, updated: new Date().toISOString() };
   saveManifest(manifest);
 
-  log(`Готово: ${written.length} гайд(ов)${reg.length ? `, ${reg.length} зарегистрировано в Steam Cloud` : ''}. * — талант выбран по винрейту.`);
-  if (reg.length) log('Запусти Steam, затем Dota.');
-  else if (steam.isProcessRunning('dota2.exe')) log('Перезайди в Dota, чтобы увидеть изменения.');
+  log(L('log.done', { n: written.length, registered: reg.length ? L('log.registered', { n: reg.length }) : '' }));
+  if (reg.length) log(L('log.startSteam'));
+  else if (steam.isProcessRunning('dota2.exe')) log(L('log.restartDota'));
   return summary;
 }
 
 // Removes guides we manage. keys: ['lion:4', ...] or 'all'.
-async function remove({ steamRoot, account, keys, closeSteam = false }, log = () => {}) {
-  const root = steamRoot || steam.findSteamRoot();
-  const acc = findAccount(root, account);
+async function remove({ steamRoot, account, keys, closeSteam = false, lang = 'ru' }, log = () => {}) {
+  const L = (k, v) => t(lang, k, v);
+  const root = steamRoot || steam.findSteamRoot(lang);
+  const acc = findAccount(root, account, lang);
   const manifest = loadManifest();
   const mine = manifest.accounts[acc.accountId] || {};
   const list = (keys === 'all' ? Object.keys(mine) : keys).filter(k => mine[k]);
-  if (!list.length) { log('Нечего удалять.'); return { removed: [] }; }
+  if (!list.length) { log(L('log.nothingToRemove')); return { removed: [] }; }
   if (steam.isProcessRunning('steam.exe')) {
-    if (closeSteam) await steam.shutdownSteam(root, log);
-    else { log('Удалять гайды можно только при закрытом Steam.'); return { removed: [], needSteamClose: true }; }
+    if (closeSteam) await steam.shutdownSteam(root, log, lang);
+    else { log(L('log.removeNeedsSteamClosed')); return { removed: [], needSteamClose: true }; }
   }
   steam.unregisterFiles(acc.dir, list.map(k => `guides/${mine[k].file}`));
   for (const k of list) {
     fs.rmSync(path.join(acc.dir, 'remote', 'guides', mine[k].file), { force: true });
-    log(`  − удалён ${k}`);
+    log(L('log.removed', { key: k }));
     delete mine[k];
   }
   saveManifest(manifest);
-  log(`Удалено: ${list.length}.`);
+  log(L('log.removedTotal', { n: list.length }));
   return { removed: list };
 }
 

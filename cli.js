@@ -5,6 +5,7 @@
 //   node cli.js install lion:4,5 "shadow shaman" axe:3 [--account <ник>] [--close-steam] [--dry-run] [--fresh] [--fetch auto|curl|browser]
 //   node cli.js update [--account ...] [--close-steam]
 //   node cli.js remove lion:4 | --all [--account ...] [--close-steam]
+//   общий флаг: --lang ru|en (язык сообщений и текстов внутри гайдов)
 const fs = require('fs');
 const core = require('./src/core');
 const steam = require('./src/steam');
@@ -17,13 +18,14 @@ for (let i = 1; i < argv.length; i++) {
   if (a.startsWith('--')) {
     const [k, v] = a.slice(2).split('=');
     if (v !== undefined) flags[k] = v;
-    else if (argv[i + 1] && !argv[i + 1].startsWith('--') && ['account', 'fetch', 'steam-root'].includes(k)) flags[k] = argv[++i];
+    else if (argv[i + 1] && !argv[i + 1].startsWith('--') && ['account', 'fetch', 'steam-root', 'lang'].includes(k)) flags[k] = argv[++i];
     else flags[k] = true;
   } else positional.push(a);
 }
 const log = (...a) => console.log(...a);
 const steamRoot = () => flags['steam-root'] || steam.findSteamRoot();
-const common = () => ({ steamRoot: steamRoot(), account: flags.account, closeSteam: !!flags['close-steam'] });
+const lang = flags.lang || 'ru';
+const common = () => ({ steamRoot: steamRoot(), account: flags.account, closeSteam: !!flags['close-steam'], lang });
 
 const commands = {
   async accounts() {
@@ -35,7 +37,7 @@ const commands = {
     log('  (* — последний вход; используется по умолчанию)');
   },
   async heroes() {
-    const heroes = await core.getHeroes({ fresh: flags.fresh, fetchMode: flags.fetch }, log);
+    const heroes = await core.getHeroes({ fresh: flags.fresh, fetchMode: flags.fetch, lang }, log);
     const f = positional[0] ? core.norm(positional[0]) : '';
     for (const h of heroes.filter(h => !f || core.norm(h.name).includes(f) || core.norm(h.npc).includes(f))) {
       const ps = h.positions.map(p => { const m = h.main.includes(p.pos); return `${m ? '[' : ' '}${p.pos}:${String(p.matches).padStart(5)}${m ? ']' : ' '}`; }).join(' ');
@@ -45,7 +47,7 @@ const commands = {
   },
   async install() {
     if (!positional.length) { log('Укажи героев, например: node cli.js install lion:4,5'); return; }
-    const heroes = await core.getHeroes({ fetchMode: flags.fetch }, log);
+    const heroes = await core.getHeroes({ fetchMode: flags.fetch, lang }, log);
     const targets = core.resolveSpecs(positional, heroes.map(h => ({ npc: h.npc, displayName: h.name, ...Object.fromEntries(h.positions.map(p => [`pos ${p.pos} matches`, p.matches])) })));
     await core.install({ ...common(), targets, dryRun: !!flags['dry-run'], fresh: !!flags.fresh, fetchMode: flags.fetch }, log);
   },
