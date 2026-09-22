@@ -23,9 +23,9 @@ try {
   execFileSync(tar, ['-a', '-c', '-f', OUT, 'd2pt-guides'], { cwd: stage, stdio: 'inherit' });
 
   const files = execFileSync(tar, ['-t', '-f', OUT], { encoding: 'utf8' }).trim().split(/\r?\n/).filter(f => !f.endsWith('/'));
-  console.log(`Готово: ${OUT} (${(fs.statSync(OUT).size / 1024).toFixed(0)} КБ, файлов: ${files.length})`);
+  console.log(`Done: ${OUT} (${(fs.statSync(OUT).size / 1024).toFixed(0)} KB, ${files.length} files)`);
   for (const f of files) console.log('  ' + f);
-  console.log('\nОтправь архив другу: распаковать → запустить start.bat (нужен Node.js 22+).');
+  console.log('\nSend the archive to a friend: unpack it and run start.bat (needs Node.js 22+).');
 } finally {
   fs.rmSync(stage, { recursive: true, force: true });
 }

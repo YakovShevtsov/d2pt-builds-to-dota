@@ -28,7 +28,7 @@ function readBody(req) {
 
 // Runs a long job and streams its log to the page as NDJSON lines.
 async function stream(res, job) {
-  if (busy) return json(res, 409, { error: 'Уже выполняется другая операция' });
+  if (busy) return json(res, 409, { error: 'Another operation is already running' });
   busy = true;
   res.writeHead(200, { 'Content-Type': 'application/x-ndjson; charset=utf-8', 'Cache-Control': 'no-store' });
   const send = obj => res.write(JSON.stringify(obj) + '\n');
@@ -57,7 +57,7 @@ const routes = {
   },
 
   'GET /api/heroes': async (req, res, url) => {
-    try { json(res, 200, await core.getHeroes({ fresh: url.searchParams.get('fresh') === '1', lang: url.searchParams.get('lang') })); }
+    try { json(res, 200, await core.getHeroes({ fresh: url.searchParams.get('fresh') === '1' })); }
     catch (e) { json(res, 502, { error: e.message }); }
   },
 
@@ -66,8 +66,8 @@ const routes = {
     const body = await readBody(req);
     await stream(res, async log => {
       const out = {};
-      if (body.remove?.length) out.remove = await core.remove({ account: body.account, keys: body.remove, closeSteam: !!body.closeSteam, lang: body.lang }, log);
-      if (body.install?.length) out.install = await core.install({ account: body.account, targets: body.install, closeSteam: !!body.closeSteam, lang: body.lang }, log);
+      if (body.remove?.length) out.remove = await core.remove({ account: body.account, keys: body.remove, closeSteam: !!body.closeSteam }, log);
+      if (body.install?.length) out.install = await core.install({ account: body.account, targets: body.install, closeSteam: !!body.closeSteam }, log);
       return out;
     });
   },
@@ -75,7 +75,7 @@ const routes = {
   // body: { account, fresh }
   'POST /api/update': async (req, res) => {
     const body = await readBody(req);
-    await stream(res, log => core.install({ account: body.account, targets: 'installed', fresh: !!body.fresh, lang: body.lang }, log));
+    await stream(res, log => core.install({ account: body.account, targets: 'installed', fresh: !!body.fresh }, log));
   },
 };
 
@@ -102,7 +102,7 @@ const server = http.createServer(async (req, res) => {
 
 server.on('error', e => {
   if (e.code === 'EADDRINUSE') {
-    console.log(`Порт ${PORT} занят — похоже, тулза уже запущена. Открываю страницу.`);
+    console.log(`Port ${PORT} is busy — the tool seems to be running already. Opening the page.`);
     openBrowser();
     setTimeout(() => process.exit(0), 500);
   } else throw e;
@@ -116,6 +116,6 @@ function openBrowser() {
 
 server.listen(PORT, '127.0.0.1', () => {
   console.log(`D2PT → Dota 2: http://127.0.0.1:${PORT}/`);
-  console.log('Закрой это окно, чтобы выйти.');
+  console.log('Close this window to quit.');
   openBrowser();
 });

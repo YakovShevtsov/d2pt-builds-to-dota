@@ -4,7 +4,7 @@ const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
 const { openBrowserSession } = require('./browser');
-const { t, STRINGS, langOf } = require('./i18n');
+const { t, STRINGS } = require('./i18n');
 
 const ORIGIN = 'https://dota2protracker.com';
 const UA = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
@@ -23,15 +23,15 @@ class LimitedError extends Error {}
 
 class TransportError extends Error {}
 
-function curlGet(url, lang) {
+function curlGet(url) {
   return new Promise((resolve, reject) => {
     execFile(CURL, ['-sS', '--max-time', '30', '-A', UA, '-H', 'Accept: application/json, text/plain, */*', '-w', '\n%{http_code}', url],
       { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, windowsHide: true },
       (err, stdout, stderr) => {
         if (err) {
           const code = typeof err.code === 'number' ? err.code : null;
-          const why = (code && STRINGS[langOf(lang)].curl[code]) || (stderr || '').trim().split('\n').pop() || err.message;
-          return reject(new TransportError(t(lang, 'err.curlRequest', { why }) + (code ? ` (curl ${code})` : '')));
+          const why = (code && STRINGS.curl[code]) || (stderr || '').trim().split('\n').pop() || err.message;
+          return reject(new TransportError(t('err.curlRequest', { why }) + (code ? ` (curl ${code})` : '')));
         }
         const i = stdout.lastIndexOf('\n');
         resolve({ status: Number(stdout.slice(i + 1)), body: stdout.slice(0, i) });
@@ -39,7 +39,7 @@ function curlGet(url, lang) {
   });
 }
 
-async function createClient({ mode = 'auto', log = () => {}, cacheDir = null, fresh = false, lang = 'ru' } = {}) {
+async function createClient({ mode = 'auto', log = () => {}, cacheDir = null, fresh = false } = {}) {
   let browser = null;
   let transport = mode === 'browser' ? 'browser' : 'curl';
 
@@ -47,23 +47,23 @@ async function createClient({ mode = 'auto', log = () => {}, cacheDir = null, fr
     if (transport === 'curl') {
       let r;
       try {
-        r = await curlGet(url, lang);
+        r = await curlGet(url);
       } catch (e) {
         if (!(e instanceof TransportError)) throw e;
         if (mode === 'curl') throw new Error(`curl ${e.message}`);
-        log(t(lang, 'log.curlFailed', { reason: e.message }));
+        log(t('log.curlFailed', { reason: e.message }));
         transport = 'browser';
       }
       if (r) {
         if (!isChallenge(r)) return r;
-        if (mode === 'curl') throw new Error(t(lang, 'err.curlOnly'));
-        log(t(lang, 'log.curlChallenged'));
+        if (mode === 'curl') throw new Error(t('err.curlOnly'));
+        log(t('log.curlChallenged'));
         transport = 'browser';
       }
     }
-    browser ??= await openBrowserSession(ORIGIN, { log, lang });
+    browser ??= await openBrowserSession(ORIGIN, { log });
     const r = await browser.getText(url);
-    if (isChallenge(r)) throw new Error(t(lang, 'err.browserChallenged'));
+    if (isChallenge(r)) throw new Error(t('err.browserChallenged'));
     return r;
   }
 
@@ -73,8 +73,8 @@ async function createClient({ mode = 'auto', log = () => {}, cacheDir = null, fr
     if (wait > 0) await sleep(wait);
     last = Date.now();
     const r = await raw(ORIGIN + apiPath);
-    if (isLimited(r)) throw new LimitedError(t(lang, 'err.limited'));
-    if (r.status !== 200) throw new Error(t(lang, 'err.http', { path: apiPath, status: r.status }));
+    if (isLimited(r)) throw new LimitedError(t('err.limited'));
+    if (r.status !== 200) throw new Error(t('err.http', { path: apiPath, status: r.status }));
     return JSON.parse(r.body);
   }
 
@@ -90,7 +90,7 @@ async function createClient({ mode = 'auto', log = () => {}, cacheDir = null, fr
   }
 
   return {
-    get transport() { return browser ? `${lang === 'en' ? 'browser' : 'браузер'} (${browser.name})` : 'curl'; },
+    get transport() { return browser ? `browser (${browser.name})` : 'curl'; },
     heroes: () => get('/api/heroes/list'),
     builds: (heroId, pos) => get(`/api/hero/${heroId}/builds?position=pos%20${pos}`),
     close: async () => { if (browser) await browser.close(); },
@@ -98,7 +98,7 @@ async function createClient({ mode = 'auto', log = () => {}, cacheDir = null, fr
 }
 
 // OpenDota item id -> internal name map, cached on disk.
-async function loadItemNames(cacheFile, lang = 'ru') {
+async function loadItemNames(cacheFile) {
   const fresh = fs.existsSync(cacheFile) && Date.now() - fs.statSync(cacheFile).mtimeMs < 24 * 3600e3;
   if (!fresh) {
     try {
@@ -106,7 +106,7 @@ async function loadItemNames(cacheFile, lang = 'ru') {
       fs.mkdirSync(path.dirname(cacheFile), { recursive: true });
       fs.writeFileSync(cacheFile, JSON.stringify(ids));
     } catch (e) {
-      if (!fs.existsSync(cacheFile)) throw new Error(t(lang, 'err.itemsFailed', { why: e.message }));
+      if (!fs.existsSync(cacheFile)) throw new Error(t('err.itemsFailed', { why: e.message }));
     }
   }
   const ids = JSON.parse(fs.readFileSync(cacheFile, 'utf8'));

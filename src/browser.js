@@ -13,7 +13,7 @@ function findBrowsers() {
   const candidates = [
     ['Google Chrome', [P, X, L].map(d => path.join(d, 'Google/Chrome/Application/chrome.exe'))],
     ['Microsoft Edge', [X, P].map(d => path.join(d, 'Microsoft/Edge/Application/msedge.exe'))],
-    ['Яндекс Браузер', [path.join(L, 'Yandex/YandexBrowser/Application/browser.exe')]],
+    ['Yandex Browser', [path.join(L, 'Yandex/YandexBrowser/Application/browser.exe')]],
     ['Brave', [P, X, L].map(d => path.join(d, 'BraveSoftware/Brave-Browser/Application/brave.exe'))],
     ['Vivaldi', [L, P].map(d => path.join(d, 'Vivaldi/Application/vivaldi.exe'))],
     ['Opera', [path.join(L, 'Programs/Opera/opera.exe')]],
@@ -55,11 +55,11 @@ class Cdp {
   close() { try { this.ws.close(); } catch {} }
 }
 
-async function openBrowserSession(origin, { log = () => {}, lang = 'ru' } = {}) {
+async function openBrowserSession(origin, { log = () => {} } = {}) {
   const browsers = findBrowsers();
-  if (!browsers.length) throw new Error(t(lang, 'err.noBrowser'));
+  if (!browsers.length) throw new Error(t('err.noBrowser'));
   const { name, exe } = browsers[0];
-  log(t(lang, 'log.usingBrowser', { name }));
+  log(t('log.usingBrowser', { name }));
   const profile = fs.mkdtempSync(path.join(os.tmpdir(), 'd2pt-browser-'));
   const proc = spawn(exe, [
     '--remote-debugging-port=0', `--user-data-dir=${profile}`, '--no-first-run', '--no-default-browser-check',
@@ -72,7 +72,7 @@ async function openBrowserSession(origin, { log = () => {}, lang = 'ru' } = {}) 
     await sleep(200);
     if (fs.existsSync(portFile)) port = fs.readFileSync(portFile, 'utf8').split('\n')[0].trim();
   }
-  if (!port) { proc.kill(); throw new Error(t(lang, 'err.noDebugPort', { name })); }
+  if (!port) { proc.kill(); throw new Error(t('err.noDebugPort', { name })); }
 
   const targets = await fetch(`http://127.0.0.1:${port}/json/list`).then(r => r.json());
   const page = targets.find(t => t.type === 'page' && t.url.startsWith(origin)) || targets.find(t => t.type === 'page');
@@ -85,8 +85,8 @@ async function openBrowserSession(origin, { log = () => {}, lang = 'ru' } = {}) 
   for (let i = 0; ; i++) {
     const [o, state, title = ''] = String(await cdp.eval(probe).catch(() => '')).split('|');
     if (o === origin && state === 'complete' && !/just a moment|momento|момент/i.test(title)) break;
-    if (i === 10) log(t(lang, 'log.waitingCloudflare'));
-    if (i > 120) { cdp.close(); proc.kill(); throw new Error(t(lang, 'err.challengeTimeout')); }
+    if (i === 10) log(t('log.waitingCloudflare'));
+    if (i > 120) { cdp.close(); proc.kill(); throw new Error(t('err.challengeTimeout')); }
     await sleep(500);
   }
 
@@ -104,7 +104,7 @@ async function openBrowserSession(origin, { log = () => {}, lang = 'ru' } = {}) 
     for (let i = 0; ; i++) {
       const [state, title = ''] = String(await cdp.eval('document.readyState + "|" + document.title').catch(() => '')).split('|');
       if (state === 'complete' && !/just a moment|momento|момент/i.test(title)) break;
-      if (i > 120) throw new Error(t(lang, 'err.challengeTimeout'));
+      if (i > 120) throw new Error(t('err.challengeTimeout'));
       await sleep(500);
     }
     const body = await cdp.eval('document.body.innerText');

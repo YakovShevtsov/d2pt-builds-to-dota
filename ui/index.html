@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="ru">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -44,10 +44,12 @@
 
   /* --dock-h is kept in sync with the real dock height (it grows when the log opens). */
   main { max-width: 1400px; margin: 0 auto; padding: 16px 20px calc(var(--dock-h, 64px) + 24px); }
-  .credit { margin-bottom: 20px; }
   .legend { display: flex; flex-wrap: wrap; gap: 12px 14px; color: var(--muted); font-size: 12.5px; margin: 4px 0 20px; }
   .legend .hint { flex-basis: 100%; }
   .legend i { display: inline-block; width: 18px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+  .legend i.add { background: var(--accent); border-color: var(--accent); }
+  .legend i.keep { background: var(--text); border-color: var(--text); }
+  .legend i.del { background: linear-gradient(to right, transparent 15%, var(--muted) 15%, var(--muted) 85%, transparent 85%) center/100% 1px no-repeat; }
   .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 10px; }
   .hero { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; transition: border-color .15s; }
   .hero.has-sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
@@ -61,13 +63,15 @@
   .pos.main { color: var(--text); border-color: #4b5361; }
   .pos:disabled { opacity: .28; }
   .pos:not(:disabled):hover { border-color: var(--accent); }
-  .pos.add { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  .pos.keep { background: var(--ok); color: var(--ok-ink); border-color: var(--ok); }
-  .pos.del { background: transparent; color: var(--bad); border: 1px dashed var(--bad); text-decoration: line-through; }
+  .pos.add { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }   /* will be installed */
+  .pos.keep { background: var(--text); color: #12161b; border-color: var(--text); }                  /* installed */
+  .pos.del { background: transparent; color: var(--muted); border-color: var(--line); text-decoration: line-through; } /* will be removed */
   .empty { color: var(--muted); padding: 40px 0; text-align: center; }
-  .credit { display: flex; align-items: flex-start; gap: 12px; margin: 28px 0 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--muted); font-size: 12.5px; }
-  .credit img { width: 26px; height: 26px; border-radius: 6px; flex: none; }
-  .credit p { margin: 0; max-width: 78ch; line-height: 1.55; }
+  .credits { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 10px; margin: 28px 0 0; }
+  .credit { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--muted); font-size: 12.5px; }
+  .credit img { width: 26px; height: 26px; object-fit: contain; border-radius: 6px; flex: none; }
+  .credit img.valve { width: 62px; height: 26px; border-radius: 0; opacity: .95; }
+  .credit p { margin: 0; line-height: 1.55; }
   .credit b { color: var(--text); font-weight: 600; }
   a { color: var(--accent); }
 
@@ -114,55 +118,55 @@
 <header>
   <div class="bar">
     <h1><img class="logo logo-d2pt" src="/assets/d2pt.ico" alt="">D2PT <span class="arrow">→</span> <img class="logo" src="/assets/dota.png" alt="">Dota 2</h1>
-    <label class="chip"><span data-i18n="account">Аккаунт</span> <select id="account"></select></label>
+    <label class="chip"><span data-i18n="account">Account</span> <select id="account"></select></label>
     <span class="chip" id="steamChip"><span class="dot"></span><span class="txt">Steam</span></span>
     <span class="chip" id="dotaChip"><span class="dot"></span><span class="txt">Dota</span></span>
     <div class="spacer"></div>
-    <div class="seg" id="langSeg">
-      <button data-v="ru">RU</button><button data-v="en">EN</button>
-    </div>
-    <button class="chip" id="helpBtn" data-i18n-title="helpTitle" title="Что это и как пользоваться">?</button>
-    <input type="search" id="search" data-i18n-placeholder="searchPlaceholder" placeholder="Поиск героя…" autocomplete="off">
+    <button class="chip" id="helpBtn" data-i18n-title="helpTitle" title="What this is and how to use it">?</button>
+    <input type="search" id="search" data-i18n-placeholder="searchPlaceholder" placeholder="Search hero…" autocomplete="off">
   </div>
   <div class="bar" style="padding-top:0">
     <div class="seg" id="attrSeg">
-      <button data-v="all" class="active" data-i18n="attrAll">Все</button>
-      <button data-v="0"><img src="/assets/attr_strength.png" alt=""><span data-i18n="attrStr">Сила</span></button>
-      <button data-v="1"><img src="/assets/attr_agility.png" alt=""><span data-i18n="attrAgi">Ловкость</span></button>
-      <button data-v="2"><img src="/assets/attr_intelligence.png" alt=""><span data-i18n="attrInt">Интеллект</span></button>
-      <button data-v="3"><img src="/assets/attr_universal.png" alt=""><span data-i18n="attrUni">Универсал</span></button>
+      <button data-v="all" class="active" data-i18n="attrAll">All</button>
+      <button data-v="0"><img src="/assets/attr_strength.png" alt=""><span data-i18n="attrStr">Strength</span></button>
+      <button data-v="1"><img src="/assets/attr_agility.png" alt=""><span data-i18n="attrAgi">Agility</span></button>
+      <button data-v="2"><img src="/assets/attr_intelligence.png" alt=""><span data-i18n="attrInt">Intelligence</span></button>
+      <button data-v="3"><img src="/assets/attr_universal.png" alt=""><span data-i18n="attrUni">Universal</span></button>
     </div>
-    <div class="seg" id="posSeg" data-i18n-title="roleFilterTitle" title="Показывать героев, для которых эта роль основная">
-      <button data-v="all" class="active" data-i18n="roleAny">Любая роль</button>
-      <button data-v="1"><img src="/assets/pos_1.svg" alt=""><span data-i18n="pos1">Лёгкая</span></button>
-      <button data-v="2"><img src="/assets/pos_2.png" alt=""><span data-i18n="pos2">Мид</span></button>
-      <button data-v="3"><img src="/assets/pos_3.png" alt=""><span data-i18n="pos3">Оффлейн</span></button>
-      <button data-v="4"><img src="/assets/pos_4.png" alt=""><span data-i18n="pos4">Поддержка</span></button>
-      <button data-v="5"><img src="/assets/pos_5.png" alt=""><span data-i18n="pos5">Полная поддержка</span></button>
+    <div class="seg" id="posSeg" data-i18n-title="roleFilterTitle" title="Show heroes most often played in this role">
+      <button data-v="all" class="active" data-i18n="roleAny">Any role</button>
+      <button data-v="1"><img src="/assets/pos_1.svg" alt=""><span data-i18n="pos1">Safelane</span></button>
+      <button data-v="2"><img src="/assets/pos_2.png" alt=""><span data-i18n="pos2">Mid</span></button>
+      <button data-v="3"><img src="/assets/pos_3.png" alt=""><span data-i18n="pos3">Offlane</span></button>
+      <button data-v="4"><img src="/assets/pos_4.png" alt=""><span data-i18n="pos4">Soft support</span></button>
+      <button data-v="5"><img src="/assets/pos_5.png" alt=""><span data-i18n="pos5">Hard support</span></button>
     </div>
     <div class="seg" id="showSeg">
-      <button data-v="all" class="active" data-i18n="showAll">Все герои</button>
-      <button data-v="mine" data-i18n="showMine">Выбранные</button>
+      <button data-v="all" class="active" data-i18n="showAll">All heroes</button>
+      <button data-v="mine" data-i18n="showMine">Selected</button>
     </div>
   </div>
 </header>
 
 <main>
   <div class="legend">
-    <span><i style="background:var(--accent);border-color:var(--accent)"></i><span data-i18n="legendAdd">будет добавлен</span></span>
-    <span><i style="background:var(--ok);border-color:var(--ok)"></i><span data-i18n="legendKeep">установлен</span></span>
-    <span><i style="border:1px dashed var(--bad)"></i><span data-i18n="legendDel">будет удалён</span></span>
-    <span class="hint" data-i18n="legendHint">Клик по картинке — выбрать основные роли героя</span>
+    <span><i class="keep"></i><span data-i18n="legendKeep">installed</span></span>
+    <span><i class="add"></i><span data-i18n="legendAdd">will be installed</span></span>
+    <span><i class="del"></i><span data-i18n="legendDel">will be removed</span></span>
+    <span class="hint" data-i18n="legendHint">Click the portrait to pick the hero’s most popular roles</span>
   </div>
   <div class="grid" id="grid"></div>
-  <div class="empty" id="empty" data-i18n="nothingFound" hidden>Никого не нашлось</div>
+  <div class="empty" id="empty" data-i18n="nothingFound" hidden>Nothing found</div>
 
-  <footer class="credit">
-    <img src="/assets/d2pt.ico" alt="">
-    <p data-i18n-html="creditText">Все данные о сборках — с <a href="https://dota2protracker.com" target="_blank" rel="noopener">dota2protracker.com</a>,
-      права на них принадлежат D2PT. Тулза бесплатная, неофициальная и никак с ними не связана.
-      <b>За подробной статистикой, аналитикой и разбором меты идите к ним —</b>
-      здесь только маленький кусочек того, что там есть.</p>
+  <footer class="credits">
+    <div class="credit">
+      <img src="/assets/d2pt.ico" alt="D2PT">
+      <p data-i18n-html="creditText">All build data comes from dota2protracker.com.</p>
+    </div>
+    <div class="credit">
+      <img class="valve" src="/assets/valve.svg" alt="Valve">
+      <p data-i18n-html="creditValve">Dota 2 and its images are property of Valve Corporation.</p>
+    </div>
   </footer>
 </main>
 
@@ -170,10 +174,11 @@
   <div class="bar">
     <span class="summary" id="summary"></span>
     <div class="spacer"></div>
-    <button class="btn" id="resetBtn" data-i18n="reset">Сбросить</button>
-    <button class="btn" id="updateBtn" data-i18n="updateInstalled">Обновить установленные</button>
-    <button class="btn primary" id="applyBtn">Применить</button>
-    <button class="btn" id="logBtn" data-i18n-title="showLog" title="Показать лог" aria-expanded="false"><span data-i18n="log">Лог</span> <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 7.5 6 4l3.5 3.5"/></svg></button>
+    <button class="btn" id="resetBtn" data-i18n="reset">Reset</button>
+    <button class="btn" id="removeAllBtn" data-i18n="removeAll" data-i18n-title="removeAllTitle" title="Mark every installed build for removal">Remove all</button>
+    <button class="btn" id="updateBtn" data-i18n="updateInstalled">Update installed</button>
+    <button class="btn primary" id="applyBtn">Apply</button>
+    <button class="btn" id="logBtn" data-i18n-title="showLog" title="Show log" aria-expanded="false"><span data-i18n="log">Log</span> <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 7.5 6 4l3.5 3.5"/></svg></button>
   </div>
   <pre class="log" id="log"></pre>
 </div>
@@ -185,29 +190,26 @@
       <span class="arrow">→</span>
       <img src="/assets/dota.png" alt="Dota 2">
     </div>
-    <h2 data-i18n="introTitle">Сборки с D2PT прямо в Dota</h2>
-    <p data-i18n="introLead">Тулза берёт самые популярные сборки героев с dota2protracker.com (игры 7000+ MMR)
-       и добавляет их в игру как твои гайды: предметы с таймингами, порядок скиллов и таланты.</p>
+    <h2 data-i18n="introTitle">D2PT builds right inside Dota</h2>
+    <p data-i18n="introLead">This tool takes the most popular hero builds from dota2protracker.com and adds them to the game as your own guides.</p>
     <ol class="steps">
-      <li data-i18n-html="introStep1"><b>Выбери героев и роли.</b> Клик по цифрам 1–5 под героем или по картинке — тогда возьмутся основные роли.</li>
-      <li data-i18n-html="introStep2"><b>Нажми «Применить».</b> Если Steam запущен, тулза предложит закрыть его — так Steam увидит новые гайды.</li>
-      <li data-i18n-html="introStep3"><b>Запусти Steam и Dota.</b> У выбранных героев появятся гайды «D2PT Pos 4», «D2PT Pos 5» и т.д.</li>
+      <li data-i18n-html="introStep1">Pick heroes and roles.</li>
+      <li data-i18n-html="introStep2">Hit “Apply”.</li>
+      <li data-i18n-html="introStep3">Start Steam and Dota.</li>
     </ol>
-    <p class="muted" data-i18n="introNote">После патчей жми «Обновить установленные» — Steam закрывать не нужно, достаточно перезайти в Dota.
-       Твои собственные гайды тулза не трогает.</p>
-    <p class="muted" data-i18n-html="introCredit">Данные — с <a href="https://dota2protracker.com" target="_blank" rel="noopener">dota2protracker.com</a>,
-       права на них принадлежат D2PT. Тулза бесплатная и неофициальная; за полной статистикой и аналитикой — к ним.</p>
-    <div class="actions"><button class="btn primary" id="introOk" data-i18n="introOk">Понятно, поехали</button></div>
+    <p class="muted" data-i18n="introNote">After a patch, hit “Update installed”.</p>
+    <p class="muted" data-i18n-html="introCredit">Data comes from dota2protracker.com.</p>
+    <div class="actions"><button class="btn primary" id="introOk" data-i18n="introOk">Got it, let’s go</button></div>
   </div>
 </div>
 
 <div class="modal-bg" id="modal">
   <div class="modal">
-    <h2 data-i18n="steamModalTitle">Нужно закрыть Steam</h2>
+    <h2 data-i18n="steamModalTitle">Steam needs to be closed</h2>
     <p id="modalText"></p>
     <div class="actions">
-      <button class="btn" id="modalCancel" data-i18n="cancel">Отмена</button>
-      <button class="btn primary" id="modalOk" data-i18n="closeSteamAndGo">Закрыть Steam и продолжить</button>
+      <button class="btn" id="modalCancel" data-i18n="cancel">Cancel</button>
+      <button class="btn primary" id="modalOk" data-i18n="closeSteamAndGo">Close Steam and continue</button>
     </div>
   </div>
 </div>
@@ -215,71 +217,43 @@
 <script>
 // ---------- i18n ----------
 const D2PT_LINK = '<a href="https://dota2protracker.com" target="_blank" rel="noopener">dota2protracker.com</a>';
-const I18N = {
-  ru: {
-    account: 'Аккаунт', helpTitle: 'Что это и как пользоваться', searchPlaceholder: 'Поиск героя…',
-    steamOn: 'Steam запущен', steamOff: 'Steam закрыт', dotaOn: 'Dota запущена', dotaOff: 'Dota закрыта',
-    attrAll: 'Все', attrStr: 'Сила', attrAgi: 'Ловкость', attrInt: 'Интеллект', attrUni: 'Универсал',
-    roleFilterTitle: 'Показывать героев, для которых эта роль основная', roleAny: 'Любая роль',
-    pos1: 'Лёгкая', pos2: 'Мид', pos3: 'Оффлейн', pos4: 'Поддержка', pos5: 'Полная поддержка',
-    showAll: 'Все герои', showMine: 'Выбранные',
-    legendAdd: 'будет добавлен', legendKeep: 'установлен', legendDel: 'будет удалён',
-    legendHint: 'Клик по картинке — выбрать основные роли героя',
-    nothingFound: 'Никого не нашлось', loadingHeroes: 'Загружаю героев с D2PT…', heroesFailed: 'Не удалось загрузить героев: {err}',
-    creditText: `Все данные о сборках — с ${D2PT_LINK}, права на них принадлежат D2PT. Тулза бесплатная, неофициальная и никак с ними не связана. <b>За подробной статистикой, аналитикой и разбором меты идите к ним —</b> здесь только маленький кусочек того, что там есть.`,
-    reset: 'Сбросить', updateInstalled: 'Обновить установленные', apply: 'Применить', log: 'Лог',
-    showLog: 'Показать лог', hideLog: 'Скрыть лог',
-    summaryAdd: '<b>+{n}</b> добавить', summaryDel: '<b>−{n}</b> удалить', summaryInstalled: 'Установлено сборок: <b>{n}</b>',
-    picTitle: 'Выбрать основные роли: {roles}', picTitleNone: 'нет',
-    posTitle: 'Pos {pos} — {role}: {matches} игр{wr}{low}', posTitleWr: ', WR {wr}%', posTitleLow: ' (мало данных)',
-    steamModalTitle: 'Нужно закрыть Steam', cancel: 'Отмена', closeSteamAndGo: 'Закрыть Steam и продолжить',
-    steamModalText: 'Чтобы {what} гайд(ов), Steam должен быть закрыт — иначе он не увидит изменения. Тулза закроет Steam сама; после этого запусти его снова.',
-    steamAdd: 'добавить {n}', steamDel: 'удалить {n}',
-    introTitle: 'Сборки с D2PT прямо в Dota',
-    introLead: 'Тулза берёт самые популярные сборки героев с dota2protracker.com (игры 7000+ MMR) и добавляет их в игру как твои гайды: предметы с таймингами, порядок скиллов и таланты.',
-    introStep1: '<b>Выбери героев и роли.</b> Клик по цифрам 1–5 под героем или по картинке — тогда возьмутся основные роли.',
-    introStep2: '<b>Нажми «Применить».</b> Если Steam запущен, тулза предложит закрыть его — так Steam увидит новые гайды.',
-    introStep3: '<b>Запусти Steam и Dota.</b> У выбранных героев появятся гайды «D2PT Pos 4», «D2PT Pos 5» и т.д.',
-    introNote: 'После патчей жми «Обновить установленные» — Steam закрывать не нужно, достаточно перезайти в Dota. Твои собственные гайды тулза не трогает.',
-    introCredit: `Данные — с ${D2PT_LINK}, права на них принадлежат D2PT. Тулза бесплатная и неофициальная; за полной статистикой и аналитикой — к ним.`,
-    introOk: 'Понятно, поехали', errorPrefix: 'Ошибка: ',
-  },
-  en: {
-    account: 'Account', helpTitle: 'What this is and how to use it', searchPlaceholder: 'Search hero…',
-    steamOn: 'Steam is running', steamOff: 'Steam is closed', dotaOn: 'Dota is running', dotaOff: 'Dota is closed',
-    attrAll: 'All', attrStr: 'Strength', attrAgi: 'Agility', attrInt: 'Intelligence', attrUni: 'Universal',
-    roleFilterTitle: 'Show heroes whose main role this is', roleAny: 'Any role',
-    pos1: 'Safelane', pos2: 'Mid', pos3: 'Offlane', pos4: 'Soft support', pos5: 'Hard support',
-    showAll: 'All heroes', showMine: 'Selected',
-    legendAdd: 'will be added', legendKeep: 'installed', legendDel: 'will be removed',
-    legendHint: 'Click the portrait to pick the hero’s main roles',
-    nothingFound: 'Nothing found', loadingHeroes: 'Loading heroes from D2PT…', heroesFailed: 'Could not load heroes: {err}',
-    creditText: `All build data comes from ${D2PT_LINK} and belongs to D2PT. This tool is free, unofficial and not affiliated with them. <b>For the full statistics, analysis and meta breakdowns go to their site —</b> this is just a tiny slice of what they offer.`,
-    reset: 'Reset', updateInstalled: 'Update installed', apply: 'Apply', log: 'Log',
-    showLog: 'Show log', hideLog: 'Hide log',
-    summaryAdd: '<b>+{n}</b> to add', summaryDel: '<b>−{n}</b> to remove', summaryInstalled: 'Installed builds: <b>{n}</b>',
-    picTitle: 'Pick main roles: {roles}', picTitleNone: 'none',
-    posTitle: 'Pos {pos} — {role}: {matches} games{wr}{low}', posTitleWr: ', WR {wr}%', posTitleLow: ' (not enough data)',
-    steamModalTitle: 'Steam needs to be closed', cancel: 'Cancel', closeSteamAndGo: 'Close Steam and continue',
-    steamModalText: 'To {what} guide(s), Steam has to be closed — otherwise it won’t see the changes. The tool will close Steam for you; start it again afterwards.',
-    steamAdd: 'add {n}', steamDel: 'remove {n}',
-    introTitle: 'D2PT builds right inside Dota',
-    introLead: 'This tool takes the most popular hero builds from dota2protracker.com (7000+ MMR games) and adds them to the game as your own guides: items with timings, skill order and talents.',
-    introStep1: '<b>Pick heroes and roles.</b> Click 1–5 under a hero, or click the portrait to take its main roles.',
-    introStep2: '<b>Hit “Apply”.</b> If Steam is running, the tool will offer to close it — that’s how Steam picks up new guides.',
-    introStep3: '<b>Start Steam and Dota.</b> The selected heroes will have “D2PT Pos 4”, “D2PT Pos 5” guides.',
-    introNote: 'After a patch, hit “Update installed” — no need to close Steam, just restart Dota. Your own guides are never touched.',
-    introCredit: `Data comes from ${D2PT_LINK} and belongs to D2PT. This tool is free and unofficial; for the full statistics and analysis go to their site.`,
-    introOk: 'Got it, let’s go', errorPrefix: 'Error: ',
-  },
+const VALVE_LINK = '<a href="https://www.valvesoftware.com" target="_blank" rel="noopener">Valve Corporation</a>';
+const S = {
+  account: 'Account', helpTitle: 'What this is and how to use it', searchPlaceholder: 'Search hero…',
+  steamOn: 'Steam is running', steamOff: 'Steam is closed', dotaOn: 'Dota is running', dotaOff: 'Dota is closed',
+  attrAll: 'All', attrStr: 'Strength', attrAgi: 'Agility', attrInt: 'Intelligence', attrUni: 'Universal',
+  roleFilterTitle: 'Show heroes most often played in this role', roleAny: 'Any role',
+  pos1: 'Safelane', pos2: 'Mid', pos3: 'Offlane', pos4: 'Soft support', pos5: 'Hard support',
+  showAll: 'All heroes', showMine: 'Selected',
+  legendKeep: 'installed', legendAdd: 'will be installed', legendDel: 'will be removed',
+  legendHint: 'Click the portrait to pick the hero’s most popular roles',
+  nothingFound: 'Nothing found', loadingHeroes: 'Loading heroes from D2PT…', heroesFailed: 'Could not load heroes: {err}',
+  creditText: `All build data comes from ${D2PT_LINK} and belongs to D2PT. <b>For the full statistics, analysis and meta breakdowns go to their site —</b> this is just a tiny slice of what they offer.`,
+  creditValve: `Dota 2, the hero and item images and the attribute and role icons are property of ${VALVE_LINK}. This tool is free, unofficial and not affiliated with either Valve or D2PT.`,
+  reset: 'Reset', updateInstalled: 'Update installed', apply: 'Apply', log: 'Log',
+  removeAll: 'Remove all', removeAllTitle: 'Mark every installed build for removal',
+  showLog: 'Show log', hideLog: 'Hide log',
+  summaryAdd: '<b>+{n}</b> to install', summaryDel: '<b>−{n}</b> to remove', summaryInstalled: 'Installed builds: <b>{n}</b>',
+  picTitle: 'Pick the most popular roles: {roles}', picTitleNone: 'none',
+  posTitle: 'Pos {pos} — {role}: {matches} games{wr}{low}', posTitleWr: ', WR {wr}%', posTitleLow: ' (not enough data)',
+  steamModalTitle: 'Steam needs to be closed', cancel: 'Cancel', closeSteamAndGo: 'Close Steam and continue',
+  steamModalText: 'To {what} guide(s), Steam has to be closed — otherwise it won’t see the changes. The tool will close Steam for you; start it again afterwards.',
+  steamAdd: 'install {n}', steamDel: 'remove {n}',
+  introTitle: 'D2PT builds right inside Dota',
+  introLead: 'This tool takes the most popular hero builds from dota2protracker.com (7000+ MMR games) and adds them to the game as your own guides: items with timings, skill order and talents.',
+  introStep1: '<b>Pick heroes and roles.</b> Click 1–5 under a hero, or click the portrait to take its most popular roles.',
+  introStep2: '<b>Hit “Apply”.</b> If Steam is running, the tool will offer to close it — that’s how Steam picks up new guides.',
+  introStep3: '<b>Start Steam and Dota.</b> The selected heroes will have “D2PT Pos 4”, “D2PT Pos 5” guides.',
+  introNote: 'After a patch, hit “Update installed” — no need to close Steam, just restart Dota. Your own guides are never touched.',
+  introCredit: `Data comes from ${D2PT_LINK} and belongs to D2PT; images and icons belong to Valve. This tool is free and unofficial; for the full statistics and analysis go to their site.`,
+  introOk: 'Got it, let’s go', errorPrefix: 'Error: ',
 };
-let lang = 'ru';
-const T = (key, vars = {}) => String(I18N[lang][key] ?? key).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : m));
+const T = (key, vars = {}) => String(S[key] ?? key).replace(/\{(\w+)\}/g, (m, k) => (vars[k] != null ? vars[k] : m));
 
 const $ = s => document.querySelector(s);
 const ICON = npc => `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${npc}.png`;
 const ATTR = ['strength', 'agility', 'intelligence', 'universal'];
-const ATTR_NAME = ['Сила', 'Ловкость', 'Интеллект', 'Универсал'];
+const ATTR_NAME = ['Strength', 'Agility', 'Intelligence', 'Universal'];
 const POS_NAME = p => T('pos' + p);
 const MIN_MATCHES = 50;
 
@@ -292,7 +266,8 @@ let state = { accounts: [], steamRunning: false, dotaRunning: false };
 let heroes = [];
 let account = null;          // accountId
 let installed = new Set();   // "npc:pos" managed by the tool for this account
-let selected = new Set();    // desired set
+let qAdd = new Set();        // queued: will be installed on Apply
+let qDel = new Set();        // queued: will be removed on Apply
 let busy = false;
 const filters = { q: '', attr: store.get('attr', 'all'), pos: store.get('pos', 'all'), show: store.get('show', 'all') };
 
@@ -309,38 +284,33 @@ function updateChips() {
   $('#dotaChip .dot').classList.toggle('on', !!state.dotaRunning);
 }
 
-// Applies the current language to the static markup; dynamic parts re-render separately.
-function applyLang() {
-  document.documentElement.lang = lang;
+// Fills the static markup from the dictionary; dynamic parts re-render separately.
+function applyText() {
   for (const el of document.querySelectorAll('[data-i18n]')) el.textContent = T(el.dataset.i18n);
   for (const el of document.querySelectorAll('[data-i18n-html]')) el.innerHTML = T(el.dataset.i18nHtml);
   for (const el of document.querySelectorAll('[data-i18n-title]')) el.title = T(el.dataset.i18nTitle);
   for (const el of document.querySelectorAll('[data-i18n-placeholder]')) el.placeholder = T(el.dataset.i18nPlaceholder);
-  $('#langSeg').querySelectorAll('button').forEach(b => b.classList.toggle('active', b.dataset.v === lang));
   setLogOpen($('#log').classList.contains('open'));
   updateChips();
   if (heroes.length) render(); else updateDock();
 }
 
-function setLang(next) {
-  lang = I18N[next] ? next : 'ru';
-  store.set('lang', lang);
-  applyLang();
-}
-
-function selectAccount(id, keepSelection) {
+function selectAccount(id, keepQueue) {
   account = id;
   store.set('account', id);
   const acc = state.accounts.find(a => a.accountId === id);
   installed = new Set(Object.keys(acc?.guides || {}));
-  if (!keepSelection) selected = new Set(installed);
+  if (!keepQueue) { qAdd.clear(); qDel.clear(); }
+  else {
+    // Drop everything the last run actually did; what failed stays queued for a retry.
+    for (const k of [...qAdd]) if (installed.has(k)) qAdd.delete(k);
+    for (const k of [...qDel]) if (!installed.has(k)) qDel.delete(k);
+  }
   render();
 }
 
 async function init() {
-  lang = store.get('lang', null) || ((navigator.language || '').toLowerCase().startsWith('ru') ? 'ru' : 'en');
-  applyLang();
-  $('#langSeg').querySelectorAll('button').forEach(b => { b.onclick = () => setLang(b.dataset.v); });
+  applyText();
 
   await loadState();
   if (store.get('introRun', null) !== state.runId) showIntro(true);
@@ -362,7 +332,7 @@ async function init() {
 
   $('#grid').innerHTML = `<div class="empty" style="grid-column:1/-1">${T('loadingHeroes')}</div>`;
   try {
-    const r = await fetch('/api/heroes?lang=' + lang);
+    const r = await fetch('/api/heroes');
     const data = await r.json();
     if (!r.ok) throw new Error(data.error);
     heroes = data;
@@ -382,28 +352,30 @@ function visible(h) {
   if (filters.q && !h.name.toLowerCase().includes(filters.q) && !h.npc.includes(filters.q)) return false;
   if (filters.attr !== 'all' && String(h.attr) !== filters.attr) return false;
   if (filters.pos !== 'all' && !h.main.includes(Number(filters.pos))) return false;
-  if (filters.show === 'mine' && ![1, 2, 3, 4, 5].some(p => selected.has(key(h.npc, p)) || installed.has(key(h.npc, p)))) return false;
+  if (filters.show === 'mine' && ![1, 2, 3, 4, 5].some(p => { const k = key(h.npc, p); return installed.has(k) || qAdd.has(k) || qDel.has(k); })) return false;
   return true;
 }
 
 function posClass(h, p) {
-  const k = key(h.npc, p.pos), s = selected.has(k), i = installed.has(k);
-  return [h.main.includes(p.pos) ? 'main' : '', s && i ? 'keep' : s ? 'add' : i ? 'del' : ''].join(' ');
+  const k = key(h.npc, p.pos);
+  const state = installed.has(k) ? (qDel.has(k) ? 'del' : 'keep') : (qAdd.has(k) ? 'add' : '');
+  return [h.main.includes(p.pos) ? 'main' : '', state].join(' ');
 }
+// A hero is highlighted only while it has something pending.
+const heroPending = h => h.positions.some(p => { const k = key(h.npc, p.pos); return qAdd.has(k) || qDel.has(k); });
 
 function render() {
   const list = heroes.filter(visible);
   $('#empty').hidden = list.length > 0;
   $('#grid').innerHTML = list.map(h => {
-    const any = h.positions.some(p => selected.has(key(h.npc, p.pos)));
-    return `<div class="hero${any ? ' has-sel' : ''}" data-npc="${h.npc}">
+    return `<div class="hero${heroPending(h) ? ' has-sel' : ''}" data-npc="${h.npc}">
       <button class="pic" title="${T('picTitle', { roles: h.main.map(p => 'Pos ' + p).join(', ') || T('picTitleNone') })}">
         <img src="${ICON(h.npc)}" alt="" loading="lazy" onerror="this.remove()">
       </button>
       <div class="name"><img class="a" src="/assets/attr_${ATTR[h.attr] || 'universal'}.png" alt="" title="${ATTR_NAME[h.attr] || ''}">${esc(h.name)}</div>
       <div class="pos-row">${h.positions.map(p => {
         const k = key(h.npc, p.pos);
-        const disabled = p.matches < MIN_MATCHES && !installed.has(k);
+        const disabled = p.matches < MIN_MATCHES && !installed.has(k) && !qAdd.has(k);
         const wr = p.wr != null ? T('posTitleWr', { wr: Math.round(p.wr * 100) }) : '';
         return `<button class="pos ${posClass(h, p)}" data-pos="${p.pos}" ${disabled ? 'disabled' : ''}
           title="${T('posTitle', { pos: p.pos, role: POS_NAME(p.pos), matches: p.matches, wr, low: disabled ? T('posTitleLow') : '' })}">${p.pos}</button>`;
@@ -413,11 +385,7 @@ function render() {
   updateDock();
 }
 
-function diff() {
-  const add = [...selected].filter(k => !installed.has(k));
-  const del = [...installed].filter(k => !selected.has(k));
-  return { add, del };
-}
+const diff = () => ({ add: [...qAdd], del: [...qDel] });
 
 function updateDock() {
   const { add, del } = diff();
@@ -431,6 +399,7 @@ function updateDock() {
     ? `${T('apply')} (${[add.length && '+' + add.length, del.length && '−' + del.length].filter(Boolean).join(' ')})`
     : T('apply');
   $('#updateBtn').disabled = busy || !installed.size;
+  $('#removeAllBtn').disabled = busy || !installed.size || [...installed].every(k => qDel.has(k));
   $('#resetBtn').disabled = busy || (!add.length && !del.length);
 }
 
@@ -443,11 +412,13 @@ $('#grid').addEventListener('click', e => {
   const posBtn = e.target.closest('.pos');
   if (posBtn && !posBtn.disabled) {
     const k = key(h.npc, Number(posBtn.dataset.pos));
-    selected.has(k) ? selected.delete(k) : selected.add(k);
+    const q = installed.has(k) ? qDel : qAdd;   // installed -> queue removal, otherwise queue install
+    q.has(k) ? q.delete(k) : q.add(k);
   } else if (e.target.closest('.pic')) {
-    const mine = h.positions.map(p => key(h.npc, p.pos)).filter(k => selected.has(k));
-    if (mine.length) mine.forEach(k => selected.delete(k));
-    else h.main.forEach(p => selected.add(key(h.npc, p)));
+    const keys = h.positions.map(p => key(h.npc, p.pos));
+    const pending = keys.filter(k => qAdd.has(k) || qDel.has(k));
+    if (pending.length) pending.forEach(k => { qAdd.delete(k); qDel.delete(k); });
+    else h.main.forEach(p => { const k = key(h.npc, p); if (!installed.has(k)) qAdd.add(k); });
   } else return;
   render();
 });
@@ -459,7 +430,9 @@ $('#introOk').onclick = dismissIntro;
 $('#helpBtn').onclick = () => showIntro(true);
 document.addEventListener('keydown', e => { if (e.key === 'Escape') { dismissIntro(); $('#modal').classList.remove('open'); } });
 
-$('#resetBtn').onclick = () => { selected = new Set(installed); render(); };
+$('#resetBtn').onclick = () => { qAdd.clear(); qDel.clear(); render(); };
+// Queues every installed build for removal; Apply still has to confirm it.
+$('#removeAllBtn').onclick = () => { installed.forEach(k => qDel.add(k)); render(); };
 // Keep the page's bottom padding equal to the dock height, so the log never covers content.
 new ResizeObserver(([e]) => {
   document.documentElement.style.setProperty('--dock-h', Math.round(e.contentRect.height) + 'px');
@@ -487,18 +460,18 @@ $('#applyBtn').onclick = async () => {
   await loadState();
   let closeSteam = false;
   if (state.steamRunning) {
-    const what = [add.length && T('steamAdd', { n: add.length }), del.length && T('steamDel', { n: del.length })].filter(Boolean).join(lang === 'ru' ? ' и ' : ' and ');
+    const what = [add.length && T('steamAdd', { n: add.length }), del.length && T('steamDel', { n: del.length })].filter(Boolean).join(' and ');
     closeSteam = await confirmSteamClose(T('steamModalText', { what }));
     if (!closeSteam) return;
   }
   await run('/api/apply', {
-    account, closeSteam, lang,
+    account, closeSteam,
     install: add.map(k => ({ npc: k.split(':')[0], pos: Number(k.split(':')[1]) })),
     remove: del,
   });
 };
 
-$('#updateBtn').onclick = () => run('/api/update', { account, lang });
+$('#updateBtn').onclick = () => run('/api/update', { account });
 
 async function run(url, body) {
   busy = true; updateDock();
@@ -519,7 +492,7 @@ async function run(url, body) {
       let i;
       while ((i = buf.indexOf('\n')) >= 0) {
         const msg = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1);
-        if (msg.type === 'log') line(msg.text, /✗|Ошибка|Error/.test(msg.text) ? 'err' : msg.text.startsWith('!') ? 'warn' : /^(Готово|Удалено|Done|Removed)/.test(msg.text) ? 'good' : '');
+        if (msg.type === 'log') line(msg.text, /✗|Error/.test(msg.text) ? 'err' : msg.text.startsWith('!') ? 'warn' : /^(Done|Removed)/.test(msg.text) ? 'good' : '');
         else if (msg.type === 'error') line(T('errorPrefix') + msg.message, 'err');
       }
     }

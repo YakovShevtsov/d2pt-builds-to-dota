@@ -13,10 +13,10 @@ const pct = x => Math.round(x * 100) + '%';
 const q = s => String(s).replace(/"/g, "'");
 const hex = n => '0x' + n.toString(16).toUpperCase().padStart(16, '0');
 
-function timingLabel(items, stats, lang) {
+function timingLabel(items, stats) {
   const mins = items.map(i => stats[i]?.min).filter(m => m != null).map(Math.round);
   if (!mins.length) return '';
-  const lo = Math.min(...mins), hi = Math.max(...mins), min = t(lang, 'guide.min');
+  const lo = Math.min(...mins), hi = Math.max(...mins), min = t('guide.min');
   return lo === hi ? ` (~${lo} ${min})` : ` (~${lo}–${hi} ${min})`;
 }
 
@@ -27,7 +27,7 @@ function pickTalent(options, cfg) {
   return { pick: best, other: options.find(o => o !== best), byWinrate: best !== popular };
 }
 
-function renderGuide(b, { ts, revision, accountId, config = {}, lang = 'ru' }) {
+function renderGuide(b, { ts, revision, accountId, config = {} }) {
   const cfg = { ...DEFAULTS, ...config };
   const st = b.items;
   const minOf = i => st[i]?.min ?? 99;
@@ -37,13 +37,13 @@ function renderGuide(b, { ts, revision, accountId, config = {}, lang = 'ru' }) {
   const sit = b.situational.filter(i => !b.build.includes(i))
     .sort((x, y) => minOf(x) - minOf(y)).slice(0, cfg.situationalMax);
 
-  const L = (key, vars) => t(lang, 'guide.' + key, vars);
+  const L = (key, vars) => t('guide.' + key, vars);
   const sections = [
     [L('secStart'), b.start],
-    [L('secEarly') + timingLabel(early, st, lang), early],
-    [L('secCore') + timingLabel(core, st, lang), core],
-    [L('secLate') + timingLabel(late, st, lang), late],
-    [L('secSituational') + timingLabel(sit, st, lang), sit],
+    [L('secEarly') + timingLabel(early, st), early],
+    [L('secCore') + timingLabel(core, st), core],
+    [L('secLate') + timingLabel(late, st), late],
+    [L('secSituational') + timingLabel(sit, st), sit],
   ].filter(([, list]) => list.length);
 
   const itemTips = {};

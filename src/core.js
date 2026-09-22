@@ -23,20 +23,20 @@ function saveManifest(m) {
 }
 
 // ---------- helpers ----------
-const norm = s => String(s).toLowerCase().replace(/[^a-zа-я0-9]/g, '');
+const norm = s => String(s).toLowerCase().replace(/[^a-z0-9]/g, '');
 
 function listAccounts(steamRoot) {
   const m = loadManifest();
   return steam.listAccounts(steamRoot).map((a, i) => ({ ...a, isDefault: i === 0, guides: m.accounts[a.accountId] || {} }));
 }
 
-function findAccount(steamRoot, query, lang = 'ru') {
+function findAccount(steamRoot, query) {
   const accounts = steam.listAccounts(steamRoot);
-  if (!accounts.length) throw new Error(t(lang, 'err.noAccounts'));
+  if (!accounts.length) throw new Error(t('err.noAccounts'));
   if (query == null || query === '') return accounts[0];
   const want = norm(query);
   const acc = accounts.find(a => String(a.accountId) === String(query) || norm(a.name) === want || norm(a.login) === want);
-  if (!acc) throw new Error(t(lang, 'err.accountNotFound', { q: query, list: accounts.map(a => a.name).join(', ') }));
+  if (!acc) throw new Error(t('err.accountNotFound', { q: query, list: accounts.map(a => a.name).join(', ') }));
   return acc;
 }
 
@@ -49,21 +49,21 @@ function mainPositions(h) {
 }
 
 // Parses CLI specs like "lion:4,5", "shadow shaman", "axe:3" into { npc, pos } targets.
-function resolveSpecs(specs, heroes, lang = 'ru') {
+function resolveSpecs(specs, heroes) {
   const out = [];
   for (const spec of specs) {
     const [name, posPart] = spec.split(':');
     const h = heroes.find(x => norm(x.npc) === norm(name) || norm(x.displayName) === norm(name));
-    if (!h) throw new Error(t(lang, 'err.heroNotFound', { name }));
+    if (!h) throw new Error(t('err.heroNotFound', { name }));
     const positions = posPart ? posPart.split(',').map(Number) : mainPositions(h);
-    if (!positions.length || positions.some(p => !(p >= 1 && p <= 5))) throw new Error(t(lang, 'err.badPositions', { hero: h.displayName, positions: posPart }));
+    if (!positions.length || positions.some(p => !(p >= 1 && p <= 5))) throw new Error(t('err.badPositions', { hero: h.displayName, positions: posPart }));
     for (const pos of positions) out.push({ npc: h.npc, pos });
   }
   return out;
 }
 
 const makeClient = (opts, log) =>
-  createClient({ mode: opts.fetchMode || 'auto', log, cacheDir: path.join(DATA, 'cache'), fresh: !!opts.fresh, lang: opts.lang });
+  createClient({ mode: opts.fetchMode || 'auto', log, cacheDir: path.join(DATA, 'cache'), fresh: !!opts.fresh });
 
 async function getHeroes(opts = {}, log = () => {}) {
   const client = await makeClient(opts, log);
@@ -78,23 +78,23 @@ async function getHeroes(opts = {}, log = () => {}) {
 
 // Installs/updates guides. targets: [{ npc, pos }] or 'installed' (= update everything we manage).
 // Returns a summary; never throws for a single hero failing.
-async function install({ steamRoot, account, targets, closeSteam = false, dryRun = false, fresh = false, fetchMode, lang = 'ru' }, log = () => {}) {
-  const L = (k, v) => t(lang, k, v);
-  const root = steamRoot || steam.findSteamRoot(lang);
-  const acc = findAccount(root, account, lang);
+async function install({ steamRoot, account, targets, closeSteam = false, dryRun = false, fresh = false, fetchMode }, log = () => {}) {
+  const L = t;
+  const root = steamRoot || steam.findSteamRoot();
+  const acc = findAccount(root, account);
   const manifest = loadManifest();
   const mine = (manifest.accounts[acc.accountId] ??= {});
   const summary = { account: acc.name, written: [], failed: [], skippedNeedSteamClose: [], registered: 0 };
   log(L('log.account', { name: acc.name }) + (dryRun ? L('log.dryRun') : ''));
 
-  const client = await makeClient({ fresh, fetchMode, lang }, log);
+  const client = await makeClient({ fresh, fetchMode }, log);
   const results = [];
   try {
     const heroes = await client.heroes();
     const list = targets === 'installed' ? Object.keys(mine).map(k => ({ npc: k.split(':')[0], pos: Number(k.split(':')[1]) })) : targets;
     if (!list.length) { log(L('log.nothingToInstall')); return summary; }
 
-    const itemName = await loadItemNames(path.join(DATA, 'item_ids.json'), lang);
+    const itemName = await loadItemNames(path.join(DATA, 'item_ids.json'));
     log(L('log.loading', { n: list.length }));
     for (const target of list) {
       const hero = heroes.find(h => h.npc === target.npc);
@@ -128,7 +128,7 @@ async function install({ steamRoot, account, targets, closeSteam = false, dryRun
   let canRegister = true;
   const newOnes = plan.filter(p => p.isNew);
   if (!dryRun && newOnes.length && steam.isProcessRunning('steam.exe')) {
-    if (closeSteam) await steam.shutdownSteam(root, log, lang);
+    if (closeSteam) await steam.shutdownSteam(root, log);
     else {
       canRegister = false;
       summary.skippedNeedSteamClose = newOnes.map(p => ({ npc: p.b.hero, pos: p.b.pos }));
@@ -139,7 +139,7 @@ async function install({ steamRoot, account, targets, closeSteam = false, dryRun
   const written = [];
   for (const p of plan) {
     if (p.isNew && !canRegister) continue;
-    const { text, talents } = renderGuide(p.b, { ts: ts++, revision: p.revision, accountId: acc.accountId, lang });
+    const { text, talents } = renderGuide(p.b, { ts: ts++, revision: p.revision, accountId: acc.accountId });
     fs.writeFileSync(path.join(guidesDir, p.file), text, 'utf8');
     written.push(p);
     const tal = talents.map(t => `${t.lvl}${t.byWinrate ? '*' : ''}`).join(' ');
@@ -149,7 +149,7 @@ async function install({ steamRoot, account, targets, closeSteam = false, dryRun
 
   if (dryRun) { log(L('log.dryRunPath', { dir: guidesDir })); return summary; }
 
-  const reg = steam.registerFiles(acc.dir, written.filter(p => p.isNew).map(p => `guides/${p.file}`), lang);
+  const reg = steam.registerFiles(acc.dir, written.filter(p => p.isNew).map(p => `guides/${p.file}`));
   summary.registered = reg.length;
   for (const p of written) mine[p.key] = { file: p.file, revision: p.revision, patch: p.b.patch, updated: new Date().toISOString() };
   saveManifest(manifest);
@@ -161,16 +161,16 @@ async function install({ steamRoot, account, targets, closeSteam = false, dryRun
 }
 
 // Removes guides we manage. keys: ['lion:4', ...] or 'all'.
-async function remove({ steamRoot, account, keys, closeSteam = false, lang = 'ru' }, log = () => {}) {
-  const L = (k, v) => t(lang, k, v);
-  const root = steamRoot || steam.findSteamRoot(lang);
-  const acc = findAccount(root, account, lang);
+async function remove({ steamRoot, account, keys, closeSteam = false }, log = () => {}) {
+  const L = t;
+  const root = steamRoot || steam.findSteamRoot();
+  const acc = findAccount(root, account);
   const manifest = loadManifest();
   const mine = manifest.accounts[acc.accountId] || {};
   const list = (keys === 'all' ? Object.keys(mine) : keys).filter(k => mine[k]);
   if (!list.length) { log(L('log.nothingToRemove')); return { removed: [] }; }
   if (steam.isProcessRunning('steam.exe')) {
-    if (closeSteam) await steam.shutdownSteam(root, log, lang);
+    if (closeSteam) await steam.shutdownSteam(root, log);
     else { log(L('log.removeNeedsSteamClosed')); return { removed: [], needSteamClose: true }; }
   }
   steam.unregisterFiles(acc.dir, list.map(k => `guides/${mine[k].file}`));
