@@ -1,0 +1,11 @@
+# Personal data: installed guides list, D2PT response cache, dry-run output
+data/manifest.json
+data/cache/
+out/
+
+# Share archive (built by pack.js)
+d2pt-guides.zip
+
+# Local tooling
+.claude/
+node_modules/

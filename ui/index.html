@@ -1,0 +1,371 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>D2PT → Dota 2</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%23171b21'/%3E%3Crect x='2' y='2' width='60' height='60' rx='12' fill='none' stroke='%23d9a441' stroke-opacity='.35' stroke-width='2'/%3E%3Cpath d='M14 32h30M34 20l12 12-12 12' fill='none' stroke='%23d9a441' stroke-width='7' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E">
+<style>
+  :root {
+    --bg: #0f1216; --panel: #171b21; --panel-2: #1e232b; --line: #2a3039; --text: #e6e9ee; --muted: #8b94a3;
+    --accent: #d9a441; --accent-ink: #1a1305; --ok: #3fb67a; --ok-ink: #04140c; --bad: #e05a4f;
+    --str: #e0604f; --agi: #4fc27a; --int: #4f9fe0; --uni: #c79be8;
+    --radius: 10px;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; background: var(--bg); color: var(--text); font: 14px/1.4 "Segoe UI", system-ui, sans-serif; }
+  button { font: inherit; color: inherit; cursor: pointer; }
+  button:disabled { cursor: default; }
+
+  header { position: sticky; top: 0; z-index: 5; background: rgba(15,18,22,.95); backdrop-filter: blur(6px); border-bottom: 1px solid var(--line); }
+  .bar { display: flex; flex-wrap: wrap; gap: 10px 16px; align-items: center; padding: 12px 20px; max-width: 1400px; margin: 0 auto; }
+  h1 { display: flex; align-items: center; gap: 7px; font-size: 17px; margin: 0 12px 0 0; letter-spacing: .3px; white-space: nowrap; }
+  h1 .arrow { color: var(--accent); margin: 0 3px; }
+  h1 .logo { width: 22px; height: 22px; object-fit: contain; flex: none; }
+  h1 .logo-d2pt { border-radius: 5px; }
+  .spacer { flex: 1; }
+  /* All header controls share one height, radius and type size. */
+  header { --ctl-h: 34px; --ctl-r: 8px; }
+  header .chip, header .seg, header input[type=search] { height: var(--ctl-h); border-radius: var(--ctl-r); font-size: 13px; }
+  input[type=search] { width: 220px; background: var(--panel-2); border: 1px solid var(--line); color: var(--text); padding: 0 12px; font-family: inherit; }
+  input[type=search]:focus, .chip select:focus-visible { outline: none; border-color: #4b5361; }
+  .chip { display: inline-flex; align-items: center; gap: 8px; padding: 0 12px; background: var(--panel-2); border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+  .chip select { height: 100%; background: transparent; border: 0; color: var(--text); font: inherit; font-weight: 600; padding: 0 2px; cursor: pointer; }
+  .chip select option { background: var(--panel-2); color: var(--text); }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.on { background: var(--ok); }
+  .seg { display: inline-flex; border: 1px solid var(--line); overflow: hidden; }
+  .seg button { height: 100%; background: var(--panel-2); border: 0; padding: 0 12px; font-size: inherit; color: var(--muted); border-right: 1px solid var(--line); }
+  .seg button:last-child { border-right: 0; }
+  .seg button.active { background: var(--panel); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
+  .attr-str { color: var(--str); } .attr-agi { color: var(--agi); } .attr-int { color: var(--int); } .attr-uni { color: var(--uni); }
+
+  main { max-width: 1400px; margin: 0 auto; padding: 16px 20px 140px; }
+  .legend { display: flex; flex-wrap: wrap; gap: 12px 14px; color: var(--muted); font-size: 12.5px; margin: 4px 0 20px; }
+  .legend .hint { flex-basis: 100%; }
+  .legend i { display: inline-block; width: 18px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(172px, 1fr)); gap: 10px; }
+  .hero { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow: hidden; transition: border-color .15s; }
+  .hero.has-sel { border-color: var(--accent); box-shadow: 0 0 0 1px var(--accent); }
+  .hero .pic { position: relative; display: block; width: 100%; aspect-ratio: 16/9; border: 0; padding: 0; background: #0b0d10; overflow: hidden; }
+  .hero .pic img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s, filter .2s; filter: saturate(.85); }
+  .hero .pic:hover img { transform: scale(1.04); filter: saturate(1.1); }
+  .hero .name { display: flex; align-items: center; gap: 6px; padding: 7px 9px 5px; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .hero .name .a { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .pos-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 0 8px 8px; }
+  .pos { position: relative; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font-weight: 600; font-size: 12.5px; }
+  .pos.main { color: var(--text); border-color: #4b5361; }
+  .pos:disabled { opacity: .28; }
+  .pos:not(:disabled):hover { border-color: var(--accent); }
+  .pos.add { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+  .pos.keep { background: var(--ok); color: var(--ok-ink); border-color: var(--ok); }
+  .pos.del { background: transparent; color: var(--bad); border: 1px dashed var(--bad); text-decoration: line-through; }
+  .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+
+  .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: rgba(23,27,33,.97); border-top: 1px solid var(--line); }
+  .dock .bar { padding: 10px 20px; }
+  .summary { color: var(--muted); }
+  .summary b { color: var(--text); font-weight: 600; }
+  .btn { border-radius: 8px; padding: 8px 14px; border: 1px solid var(--line); background: var(--panel-2); }
+  .btn:hover:not(:disabled) { border-color: #4b5361; }
+  .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+  .btn:disabled { opacity: .45; }
+  .log { display: none; max-height: 34vh; overflow: auto; margin: 0; padding: 10px 20px 12px; border-top: 1px solid var(--line); background: #0c0f13; font: 12.5px/1.5 Consolas, "Cascadia Mono", monospace; white-space: pre-wrap; color: #c9d1dc; }
+  .log.open { display: block; }
+  #logBtn { display: inline-flex; align-items: center; gap: 6px; }
+  #logBtn .chev { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; transition: transform .15s; }
+  #logBtn[aria-expanded="true"] .chev { transform: rotate(180deg); }
+  .log .err { color: var(--bad); } .log .warn { color: var(--accent); } .log .good { color: var(--ok); }
+
+  .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; place-items: center; z-index: 10; padding: 16px; }
+  .modal-bg.open { display: grid; }
+  .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; max-width: 460px; width: 100%; padding: 20px; }
+  .modal h2 { margin: 0 0 8px; font-size: 16px; }
+  .modal p { margin: 0 0 16px; color: var(--muted); }
+  .modal .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+  .toast { color: var(--bad); padding: 20px; text-align: center; }
+  @media (max-width: 640px) { input[type=search] { width: 100%; } .bar { padding: 10px 12px; } main { padding: 12px 12px 160px; } .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1><img class="logo logo-d2pt" src="/assets/d2pt.ico" alt="">D2PT <span class="arrow">→</span> <img class="logo" src="/assets/dota.png" alt="">Dota 2</h1>
+    <label class="chip">Аккаунт <select id="account"></select></label>
+    <span class="chip" id="steamChip"><span class="dot"></span>Steam</span>
+    <span class="chip" id="dotaChip"><span class="dot"></span>Dota</span>
+    <div class="spacer"></div>
+    <input type="search" id="search" placeholder="Поиск героя…" autocomplete="off">
+  </div>
+  <div class="bar" style="padding-top:0">
+    <div class="seg" id="attrSeg">
+      <button data-v="all" class="active">Все</button>
+      <button data-v="0" class="attr-str">Сила</button>
+      <button data-v="1" class="attr-agi">Ловкость</button>
+      <button data-v="2" class="attr-int">Интеллект</button>
+      <button data-v="3" class="attr-uni">Универсал</button>
+    </div>
+    <div class="seg" id="posSeg" title="Показывать героев, для которых эта позиция основная">
+      <button data-v="all" class="active">Любая роль</button>
+      <button data-v="1">Pos 1</button><button data-v="2">Pos 2</button><button data-v="3">Pos 3</button><button data-v="4">Pos 4</button><button data-v="5">Pos 5</button>
+    </div>
+    <div class="seg" id="showSeg">
+      <button data-v="all" class="active">Все герои</button>
+      <button data-v="mine">Выбранные</button>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="legend">
+    <span><i style="background:var(--accent);border-color:var(--accent)"></i>будет добавлен</span>
+    <span><i style="background:var(--ok);border-color:var(--ok)"></i>установлен</span>
+    <span><i style="border:1px dashed var(--bad)"></i>будет удалён</span>
+    <span class="hint">Клик по картинке — выбрать основные позиции героя</span>
+  </div>
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>Никого не нашлось</div>
+</main>
+
+<div class="dock">
+  <div class="bar">
+    <span class="summary" id="summary"></span>
+    <div class="spacer"></div>
+    <button class="btn" id="resetBtn">Сбросить</button>
+    <button class="btn" id="updateBtn">Обновить установленные</button>
+    <button class="btn primary" id="applyBtn">Применить</button>
+    <button class="btn" id="logBtn" title="Показать лог" aria-expanded="false">Лог <svg class="chev" viewBox="0 0 12 12" aria-hidden="true"><path d="M2.5 7.5 6 4l3.5 3.5"/></svg></button>
+  </div>
+  <pre class="log" id="log"></pre>
+</div>
+
+<div class="modal-bg" id="modal">
+  <div class="modal">
+    <h2>Нужно закрыть Steam</h2>
+    <p id="modalText"></p>
+    <div class="actions">
+      <button class="btn" id="modalCancel">Отмена</button>
+      <button class="btn primary" id="modalOk">Закрыть Steam и продолжить</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const $ = s => document.querySelector(s);
+const ICON = npc => `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${npc}.png`;
+const ATTR = ['var(--str)', 'var(--agi)', 'var(--int)', 'var(--uni)'];
+const POS_NAME = { 1: 'Керри', 2: 'Мид', 3: 'Оффлейн', 4: 'Роумер', 5: 'Полная поддержка' };
+const MIN_MATCHES = 50;
+
+const store = {
+  get(k, d) { try { const v = localStorage.getItem('d2pt.' + k); return v == null ? d : JSON.parse(v); } catch { return d; } },
+  set(k, v) { try { localStorage.setItem('d2pt.' + k, JSON.stringify(v)); } catch {} },
+};
+
+let state = { accounts: [], steamRunning: false, dotaRunning: false };
+let heroes = [];
+let account = null;          // accountId
+let installed = new Set();   // "npc:pos" managed by the tool for this account
+let selected = new Set();    // desired set
+let busy = false;
+const filters = { q: '', attr: store.get('attr', 'all'), pos: store.get('pos', 'all'), show: store.get('show', 'all') };
+
+// ---------- data ----------
+async function loadState() {
+  state = await fetch('/api/state').then(r => r.json());
+  $('#steamChip').lastChild.textContent = state.steamRunning ? 'Steam запущен' : 'Steam закрыт';
+  $('#steamChip .dot').classList.toggle('on', state.steamRunning);
+  $('#dotaChip').lastChild.textContent = state.dotaRunning ? 'Dota запущена' : 'Dota закрыта';
+  $('#dotaChip .dot').classList.toggle('on', state.dotaRunning);
+}
+
+function selectAccount(id, keepSelection) {
+  account = id;
+  store.set('account', id);
+  const acc = state.accounts.find(a => a.accountId === id);
+  installed = new Set(Object.keys(acc?.guides || {}));
+  if (!keepSelection) selected = new Set(installed);
+  render();
+}
+
+async function init() {
+  await loadState();
+  const sel = $('#account');
+  sel.innerHTML = state.accounts.map(a => `<option value="${a.accountId}">${esc(a.name)}</option>`).join('');
+  const saved = store.get('account', null);
+  const initial = state.accounts.find(a => a.accountId === saved) || state.accounts[0];
+  if (initial) sel.value = initial.accountId;
+  sel.onchange = () => selectAccount(Number(sel.value));
+
+  for (const [id, key] of [['#attrSeg', 'attr'], ['#posSeg', 'pos'], ['#showSeg', 'show']]) {
+    const seg = $(id);
+    seg.querySelectorAll('button').forEach(b => {
+      b.classList.toggle('active', b.dataset.v === String(filters[key]));
+      b.onclick = () => { filters[key] = b.dataset.v; store.set(key, b.dataset.v); seg.querySelectorAll('button').forEach(x => x.classList.toggle('active', x === b)); render(); };
+    });
+  }
+  $('#search').oninput = e => { filters.q = e.target.value.trim().toLowerCase(); render(); };
+
+  $('#grid').innerHTML = '<div class="empty" style="grid-column:1/-1">Загружаю героев с D2PT…</div>';
+  try {
+    const r = await fetch('/api/heroes');
+    const data = await r.json();
+    if (!r.ok) throw new Error(data.error);
+    heroes = data;
+  } catch (e) {
+    $('#grid').innerHTML = `<div class="toast" style="grid-column:1/-1">Не удалось загрузить героев: ${esc(e.message)}</div>`;
+    return;
+  }
+  selectAccount(initial?.accountId ?? null);
+  setInterval(() => { if (!busy) loadState().then(updateDock); }, 5000);
+}
+
+// ---------- render ----------
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+const key = (npc, pos) => `${npc}:${pos}`;
+
+function visible(h) {
+  if (filters.q && !h.name.toLowerCase().includes(filters.q) && !h.npc.includes(filters.q)) return false;
+  if (filters.attr !== 'all' && String(h.attr) !== filters.attr) return false;
+  if (filters.pos !== 'all' && !h.main.includes(Number(filters.pos))) return false;
+  if (filters.show === 'mine' && ![1, 2, 3, 4, 5].some(p => selected.has(key(h.npc, p)) || installed.has(key(h.npc, p)))) return false;
+  return true;
+}
+
+function posClass(h, p) {
+  const k = key(h.npc, p.pos), s = selected.has(k), i = installed.has(k);
+  return [h.main.includes(p.pos) ? 'main' : '', s && i ? 'keep' : s ? 'add' : i ? 'del' : ''].join(' ');
+}
+
+function render() {
+  const list = heroes.filter(visible);
+  $('#empty').hidden = list.length > 0;
+  $('#grid').innerHTML = list.map(h => {
+    const any = h.positions.some(p => selected.has(key(h.npc, p.pos)));
+    return `<div class="hero${any ? ' has-sel' : ''}" data-npc="${h.npc}">
+      <button class="pic" title="Выбрать основные позиции: ${h.main.map(p => 'Pos ' + p).join(', ') || 'нет'}">
+        <img src="${ICON(h.npc)}" alt="" loading="lazy" onerror="this.remove()">
+      </button>
+      <div class="name"><span class="a" style="background:${ATTR[h.attr] || 'var(--muted)'}"></span>${esc(h.name)}</div>
+      <div class="pos-row">${h.positions.map(p => {
+        const k = key(h.npc, p.pos);
+        const disabled = p.matches < MIN_MATCHES && !installed.has(k);
+        const wr = p.wr != null ? `, WR ${Math.round(p.wr * 100)}%` : '';
+        return `<button class="pos ${posClass(h, p)}" data-pos="${p.pos}" ${disabled ? 'disabled' : ''}
+          title="Pos ${p.pos} — ${POS_NAME[p.pos]}: ${p.matches} игр${wr}${disabled ? ' (мало данных)' : ''}">${p.pos}</button>`;
+      }).join('')}</div>
+    </div>`;
+  }).join('');
+  updateDock();
+}
+
+function diff() {
+  const add = [...selected].filter(k => !installed.has(k));
+  const del = [...installed].filter(k => !selected.has(k));
+  return { add, del };
+}
+
+function updateDock() {
+  const { add, del } = diff();
+  const parts = [];
+  if (add.length) parts.push(`<b>+${add.length}</b> добавить`);
+  if (del.length) parts.push(`<b>−${del.length}</b> удалить`);
+  parts.push(`Установлено сборок: <b>${installed.size}</b>`);
+  $('#summary').innerHTML = parts.join(' · ');
+  $('#applyBtn').disabled = busy || (!add.length && !del.length);
+  $('#applyBtn').textContent = add.length || del.length ? `Применить (${[add.length && '+' + add.length, del.length && '−' + del.length].filter(Boolean).join(' ')})` : 'Применить';
+  $('#updateBtn').disabled = busy || !installed.size;
+  $('#resetBtn').disabled = busy || (!add.length && !del.length);
+}
+
+// ---------- interactions ----------
+$('#grid').addEventListener('click', e => {
+  if (busy) return;
+  const card = e.target.closest('.hero');
+  if (!card) return;
+  const h = heroes.find(x => x.npc === card.dataset.npc);
+  const posBtn = e.target.closest('.pos');
+  if (posBtn && !posBtn.disabled) {
+    const k = key(h.npc, Number(posBtn.dataset.pos));
+    selected.has(k) ? selected.delete(k) : selected.add(k);
+  } else if (e.target.closest('.pic')) {
+    const mine = h.positions.map(p => key(h.npc, p.pos)).filter(k => selected.has(k));
+    if (mine.length) mine.forEach(k => selected.delete(k));
+    else h.main.forEach(p => selected.add(key(h.npc, p)));
+  } else return;
+  render();
+});
+
+$('#resetBtn').onclick = () => { selected = new Set(installed); render(); };
+function setLogOpen(open) {
+  $('#log').classList.toggle('open', open);
+  $('#logBtn').setAttribute('aria-expanded', String(open));
+  $('#logBtn').title = open ? 'Скрыть лог' : 'Показать лог';
+}
+$('#logBtn').onclick = () => setLogOpen(!$('#log').classList.contains('open'));
+
+function confirmSteamClose(text) {
+  return new Promise(resolve => {
+    $('#modalText').textContent = text;
+    $('#modal').classList.add('open');
+    const done = v => { $('#modal').classList.remove('open'); resolve(v); };
+    $('#modalOk').onclick = () => done(true);
+    $('#modalCancel').onclick = () => done(false);
+  });
+}
+
+$('#applyBtn').onclick = async () => {
+  const { add, del } = diff();
+  await loadState();
+  let closeSteam = false;
+  if (state.steamRunning) {
+    const what = [add.length && `добавить ${add.length}`, del.length && `удалить ${del.length}`].filter(Boolean).join(' и ');
+    closeSteam = await confirmSteamClose(`Чтобы ${what} гайд(ов), Steam должен быть закрыт — иначе он не увидит изменения. Тулза закроет Steam сама; после этого запусти его снова.`);
+    if (!closeSteam) return;
+  }
+  await run('/api/apply', {
+    account, closeSteam,
+    install: add.map(k => ({ npc: k.split(':')[0], pos: Number(k.split(':')[1]) })),
+    remove: del,
+  });
+};
+
+$('#updateBtn').onclick = () => run('/api/update', { account });
+
+async function run(url, body) {
+  busy = true; updateDock();
+  const log = $('#log');
+  setLogOpen(true);
+  log.innerHTML = '';
+  const line = (text, cls = '') => { const d = document.createElement('div'); if (cls) d.className = cls; d.textContent = text; log.appendChild(d); log.scrollTop = log.scrollHeight; };
+  try {
+    const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok && res.headers.get('content-type')?.includes('application/json')) throw new Error((await res.json()).error);
+    const reader = res.body.getReader();
+    const dec = new TextDecoder();
+    let buf = '';
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += dec.decode(value, { stream: true });
+      let i;
+      while ((i = buf.indexOf('\n')) >= 0) {
+        const msg = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1);
+        if (msg.type === 'log') line(msg.text, /✗|Ошибка/.test(msg.text) ? 'err' : msg.text.startsWith('!') ? 'warn' : /^Готово|Удалено/.test(msg.text) ? 'good' : '');
+        else if (msg.type === 'error') line('Ошибка: ' + msg.message, 'err');
+      }
+    }
+  } catch (e) {
+    line('Ошибка: ' + e.message, 'err');
+  } finally {
+    busy = false;
+    await loadState();
+    selectAccount(account, true);
+    // Keep pending picks that failed (e.g. D2PT limit) so the user can retry; drop ones that are now in sync.
+  }
+}
+
+init();
+</script>
+</body>
+</html>
