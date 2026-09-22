@@ -42,7 +42,8 @@
   .seg button.active { background: var(--panel); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
   .attr-str { color: var(--str); } .attr-agi { color: var(--agi); } .attr-int { color: var(--int); } .attr-uni { color: var(--uni); }
 
-  main { max-width: 1400px; margin: 0 auto; padding: 16px 20px 140px; }
+  main { max-width: 1400px; margin: 0 auto; padding: 16px 20px 110px; }
+  .credit { margin-bottom: 20px; }
   .legend { display: flex; flex-wrap: wrap; gap: 12px 14px; color: var(--muted); font-size: 12.5px; margin: 4px 0 20px; }
   .legend .hint { flex-basis: 100%; }
   .legend i { display: inline-block; width: 18px; height: 14px; border-radius: 4px; vertical-align: -2px; margin-right: 5px; border: 1px solid var(--line); }
@@ -63,6 +64,11 @@
   .pos.keep { background: var(--ok); color: var(--ok-ink); border-color: var(--ok); }
   .pos.del { background: transparent; color: var(--bad); border: 1px dashed var(--bad); text-decoration: line-through; }
   .empty { color: var(--muted); padding: 40px 0; text-align: center; }
+  .credit { display: flex; align-items: flex-start; gap: 12px; margin: 28px 0 0; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--muted); font-size: 12.5px; }
+  .credit img { width: 26px; height: 26px; border-radius: 6px; flex: none; }
+  .credit p { margin: 0; max-width: 78ch; line-height: 1.55; }
+  .credit b { color: var(--text); font-weight: 600; }
+  a { color: var(--accent); }
 
   .dock { position: fixed; left: 0; right: 0; bottom: 0; z-index: 6; background: rgba(23,27,33,.97); border-top: 1px solid var(--line); }
   .dock .bar { padding: 10px 20px; }
@@ -146,6 +152,14 @@
   </div>
   <div class="grid" id="grid"></div>
   <div class="empty" id="empty" hidden>Никого не нашлось</div>
+
+  <footer class="credit">
+    <img src="/assets/d2pt.ico" alt="">
+    <p>Все данные о сборках — с <a href="https://dota2protracker.com" target="_blank" rel="noopener">dota2protracker.com</a>,
+      права на них принадлежат D2PT. Тулза бесплатная, неофициальная и никак с ними не связана.
+      <b>За подробной статистикой, аналитикой и разбором меты идите к ним —</b>
+      здесь только маленький кусочек того, что там есть.</p>
+  </footer>
 </main>
 
 <div class="dock">
@@ -177,6 +191,8 @@
     </ol>
     <p class="muted">После патчей жми «Обновить установленные» — Steam закрывать не нужно, достаточно перезайти в Dota.
        Твои собственные гайды тулза не трогает.</p>
+    <p class="muted">Данные — с <a href="https://dota2protracker.com" target="_blank" rel="noopener">dota2protracker.com</a>,
+       права на них принадлежат D2PT. Тулза бесплатная и неофициальная; за полной статистикой и аналитикой — к ним.</p>
     <div class="actions"><button class="btn primary" id="introOk">Понятно, поехали</button></div>
   </div>
 </div>
