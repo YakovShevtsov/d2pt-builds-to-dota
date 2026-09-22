@@ -8,6 +8,7 @@ const core = require('./src/core');
 const steam = require('./src/steam');
 
 const PORT = Number(process.env.PORT) || 7353;
+const RUN_ID = Date.now().toString(36); // changes on every start.bat launch -> welcome screen shows once per run
 const UI = path.join(__dirname, 'ui', 'index.html');
 let busy = false;
 
@@ -52,7 +53,7 @@ const routes = {
   'GET /api/state': (req, res) => {
     const root = steam.findSteamRoot();
     const accounts = core.listAccounts(root).map(a => ({ accountId: a.accountId, name: a.name, isDefault: a.isDefault, guides: a.guides }));
-    json(res, 200, { accounts, ...core.status(), busy });
+    json(res, 200, { accounts, ...core.status(), busy, runId: RUN_ID });
   },
 
   'GET /api/heroes': async (req, res, url) => {

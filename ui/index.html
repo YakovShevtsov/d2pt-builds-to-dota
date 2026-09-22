@@ -35,7 +35,9 @@
   .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
   .dot.on { background: var(--ok); }
   .seg { display: inline-flex; border: 1px solid var(--line); overflow: hidden; }
-  .seg button { height: 100%; background: var(--panel-2); border: 0; padding: 0 12px; font-size: inherit; color: var(--muted); border-right: 1px solid var(--line); }
+  .seg button { display: inline-flex; align-items: center; gap: 6px; height: 100%; background: var(--panel-2); border: 0; padding: 0 12px; font-size: inherit; color: var(--muted); border-right: 1px solid var(--line); }
+  .seg button img { width: 15px; height: 15px; object-fit: contain; opacity: .55; }
+  .seg button.active img { opacity: 1; }
   .seg button:last-child { border-right: 0; }
   .seg button.active { background: var(--panel); color: var(--text); box-shadow: inset 0 -2px 0 var(--accent); }
   .attr-str { color: var(--str); } .attr-agi { color: var(--agi); } .attr-int { color: var(--int); } .attr-uni { color: var(--uni); }
@@ -51,7 +53,7 @@
   .hero .pic img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s, filter .2s; filter: saturate(.85); }
   .hero .pic:hover img { transform: scale(1.04); filter: saturate(1.1); }
   .hero .name { display: flex; align-items: center; gap: 6px; padding: 7px 9px 5px; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .hero .name .a { width: 7px; height: 7px; border-radius: 50%; flex: none; }
+  .hero .name .a { width: 14px; height: 14px; object-fit: contain; flex: none; }
   .pos-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 0 8px 8px; }
   .pos { position: relative; height: 28px; border-radius: 6px; border: 1px solid var(--line); background: var(--panel-2); color: var(--muted); font-weight: 600; font-size: 12.5px; }
   .pos.main { color: var(--text); border-color: #4b5361; }
@@ -89,6 +91,8 @@
   .steps li { margin-bottom: 9px; }
   .steps b { color: var(--text); font-weight: 600; }
   .modal .muted { font-size: 12.5px; }
+  .modal.intro .actions { justify-content: center; margin-top: 20px; }
+  .modal.intro .actions .btn { padding: 9px 22px; }
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; place-items: center; z-index: 10; padding: 16px; backdrop-filter: blur(3px); }
   .modal-bg.open { display: grid; }
   .modal { background: var(--panel); border: 1px solid var(--line); border-radius: 14px; max-width: 460px; width: 100%; padding: 20px; }
@@ -113,14 +117,18 @@
   <div class="bar" style="padding-top:0">
     <div class="seg" id="attrSeg">
       <button data-v="all" class="active">Все</button>
-      <button data-v="0" class="attr-str">Сила</button>
-      <button data-v="1" class="attr-agi">Ловкость</button>
-      <button data-v="2" class="attr-int">Интеллект</button>
-      <button data-v="3" class="attr-uni">Универсал</button>
+      <button data-v="0"><img src="/assets/attr_strength.png" alt="">Сила</button>
+      <button data-v="1"><img src="/assets/attr_agility.png" alt="">Ловкость</button>
+      <button data-v="2"><img src="/assets/attr_intelligence.png" alt="">Интеллект</button>
+      <button data-v="3"><img src="/assets/attr_universal.png" alt="">Универсал</button>
     </div>
-    <div class="seg" id="posSeg" title="Показывать героев, для которых эта позиция основная">
+    <div class="seg" id="posSeg" title="Показывать героев, для которых эта роль основная">
       <button data-v="all" class="active">Любая роль</button>
-      <button data-v="1">Pos 1</button><button data-v="2">Pos 2</button><button data-v="3">Pos 3</button><button data-v="4">Pos 4</button><button data-v="5">Pos 5</button>
+      <button data-v="1"><img src="/assets/pos_1.svg" alt="">Лёгкая</button>
+      <button data-v="2"><img src="/assets/pos_2.png" alt="">Мид</button>
+      <button data-v="3"><img src="/assets/pos_3.png" alt="">Оффлейн</button>
+      <button data-v="4"><img src="/assets/pos_4.png" alt="">Поддержка</button>
+      <button data-v="5"><img src="/assets/pos_5.png" alt="">Полная поддержка</button>
     </div>
     <div class="seg" id="showSeg">
       <button data-v="all" class="active">Все герои</button>
@@ -134,7 +142,7 @@
     <span><i style="background:var(--accent);border-color:var(--accent)"></i>будет добавлен</span>
     <span><i style="background:var(--ok);border-color:var(--ok)"></i>установлен</span>
     <span><i style="border:1px dashed var(--bad)"></i>будет удалён</span>
-    <span class="hint">Клик по картинке — выбрать основные позиции героя</span>
+    <span class="hint">Клик по картинке — выбрать основные роли героя</span>
   </div>
   <div class="grid" id="grid"></div>
   <div class="empty" id="empty" hidden>Никого не нашлось</div>
@@ -163,7 +171,7 @@
     <p>Тулза берёт самые популярные сборки героев с dota2protracker.com (игры 7000+ MMR)
        и добавляет их в игру как твои гайды: предметы с таймингами, порядок скиллов и таланты.</p>
     <ol class="steps">
-      <li><b>Выбери героев и позиции.</b> Клик по цифрам 1–5 под героем или по картинке — тогда возьмутся основные позиции.</li>
+      <li><b>Выбери героев и роли.</b> Клик по цифрам 1–5 под героем или по картинке — тогда возьмутся основные роли.</li>
       <li><b>Нажми «Применить».</b> Если Steam запущен, тулза предложит закрыть его — так Steam увидит новые гайды.</li>
       <li><b>Запусти Steam и Dota.</b> У выбранных героев появятся гайды «D2PT Pos 4», «D2PT Pos 5» и т.д.</li>
     </ol>
@@ -187,8 +195,9 @@
 <script>
 const $ = s => document.querySelector(s);
 const ICON = npc => `https://cdn.cloudflare.steamstatic.com/apps/dota2/images/dota_react/heroes/${npc}.png`;
-const ATTR = ['var(--str)', 'var(--agi)', 'var(--int)', 'var(--uni)'];
-const POS_NAME = { 1: 'Керри', 2: 'Мид', 3: 'Оффлейн', 4: 'Роумер', 5: 'Полная поддержка' };
+const ATTR = ['strength', 'agility', 'intelligence', 'universal'];
+const ATTR_NAME = ['Сила', 'Ловкость', 'Интеллект', 'Универсал'];
+const POS_NAME = { 1: 'Лёгкая', 2: 'Мид', 3: 'Оффлейн', 4: 'Поддержка', 5: 'Полная поддержка' };
 const MIN_MATCHES = 50;
 
 const store = {
@@ -224,6 +233,7 @@ function selectAccount(id, keepSelection) {
 
 async function init() {
   await loadState();
+  if (store.get('introRun', null) !== state.runId) showIntro(true);
   const sel = $('#account');
   sel.innerHTML = state.accounts.map(a => `<option value="${a.accountId}">${esc(a.name)}</option>`).join('');
   const saved = store.get('account', null);
@@ -277,10 +287,10 @@ function render() {
   $('#grid').innerHTML = list.map(h => {
     const any = h.positions.some(p => selected.has(key(h.npc, p.pos)));
     return `<div class="hero${any ? ' has-sel' : ''}" data-npc="${h.npc}">
-      <button class="pic" title="Выбрать основные позиции: ${h.main.map(p => 'Pos ' + p).join(', ') || 'нет'}">
+      <button class="pic" title="Выбрать основные роли: ${h.main.map(p => 'Pos ' + p).join(', ') || 'нет'}">
         <img src="${ICON(h.npc)}" alt="" loading="lazy" onerror="this.remove()">
       </button>
-      <div class="name"><span class="a" style="background:${ATTR[h.attr] || 'var(--muted)'}"></span>${esc(h.name)}</div>
+      <div class="name"><img class="a" src="/assets/attr_${ATTR[h.attr] || 'universal'}.png" alt="" title="${ATTR_NAME[h.attr] || ''}">${esc(h.name)}</div>
       <div class="pos-row">${h.positions.map(p => {
         const k = key(h.npc, p.pos);
         const disabled = p.matches < MIN_MATCHES && !installed.has(k);
@@ -330,12 +340,12 @@ $('#grid').addEventListener('click', e => {
   render();
 });
 
-// Welcome screen: shown once per browser, reopened from the "?" button.
+// Welcome screen: once per tool launch (server run id), reopened from the "?" button.
 const showIntro = on => $('#intro').classList.toggle('open', on);
-$('#introOk').onclick = () => { showIntro(false); store.set('introSeen', true); };
+const dismissIntro = () => { showIntro(false); store.set('introRun', state.runId); };
+$('#introOk').onclick = dismissIntro;
 $('#helpBtn').onclick = () => showIntro(true);
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { showIntro(false); $('#modal').classList.remove('open'); } });
-if (!store.get('introSeen', false)) showIntro(true);
+document.addEventListener('keydown', e => { if (e.key === 'Escape') { dismissIntro(); $('#modal').classList.remove('open'); } });
 
 $('#resetBtn').onclick = () => { selected = new Set(installed); render(); };
 function setLogOpen(open) {
