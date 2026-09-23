@@ -42,9 +42,15 @@ function isProcessRunning(image) {
 
 async function shutdownSteam(steamRoot, log = () => {}) {
   if (!isProcessRunning('steam.exe')) return;
+  // Steam refuses to quit while a game is running, so Dota has to go first.
+  if (isProcessRunning('dota2.exe')) {
+    log(t('log.closingDota'));
+    closeDota();
+    await waitForProcess('dota2.exe', false, 20000);
+  }
   log(t('log.closingSteam'));
   execFileSync(path.join(steamRoot, 'steam.exe'), ['-shutdown'], { windowsHide: true });
-  for (let i = 0; i < 60; i++) {
+  for (let i = 0; i < 120; i++) {
     await sleep(1000);
     if (!isProcessRunning('steam.exe')) return;
   }

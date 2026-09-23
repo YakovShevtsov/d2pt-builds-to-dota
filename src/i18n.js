@@ -59,7 +59,7 @@ const STRINGS = {
     heroNotFound: 'Hero "{name}" not found',
     badPositions: 'Invalid roles for {hero}: {positions}',
     noSteam: 'Steam not found',
-    steamNotClosed: 'Steam did not close within 60 seconds',
+    steamNotClosed: 'Steam did not close within two minutes. Is it downloading something or showing a dialog? Close it by hand and try again.',
     steamNotStarted: 'Steam did not start within 60 seconds',
     badCache: 'Unexpected remotecache.vdf format',
     limited: 'D2PT refused the request (403). Try again in a few minutes.',
