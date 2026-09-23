@@ -7,6 +7,7 @@ const { execFile } = require('child_process');
 const core = require('./src/core');
 const steam = require('./src/steam');
 const runtime = require('./src/runtime');
+const VERSION = require('./src/version');
 
 const PORT = Number(process.env.PORT) || 7353;
 const RUN_ID = Date.now().toString(36); // changes on every start.bat launch -> welcome screen shows once per run
@@ -53,7 +54,7 @@ const routes = {
   'GET /api/state': (req, res) => {
     const root = steam.findSteamRoot();
     const accounts = core.listAccounts(root).map(a => ({ accountId: a.accountId, name: a.name, isDefault: a.isDefault, guides: a.guides }));
-    json(res, 200, { accounts, ...core.status(), busy, runId: RUN_ID });
+    json(res, 200, { accounts, ...core.status(), busy, runId: RUN_ID, version: VERSION });
   },
 
   'GET /api/heroes': async (req, res, url) => {
@@ -126,7 +127,7 @@ function openBrowser() {
 }
 
 server.listen(PORT, '127.0.0.1', () => {
-  console.log(`D2PT → Dota 2: http://127.0.0.1:${PORT}/`);
+  console.log(`D2PT → Dota 2 v${VERSION}: http://127.0.0.1:${PORT}/`);
   console.log('Close this window to quit.');
   openBrowser();
 });
