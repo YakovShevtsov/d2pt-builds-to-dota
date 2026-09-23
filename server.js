@@ -61,27 +61,27 @@ const routes = {
     catch (e) { json(res, 502, { error: e.message }); }
   },
 
-  // body: { account, install: [{npc,pos}], remove: ['npc:pos'], closeSteam }
+  // body: { account, install: [{npc,pos}], remove: ['npc:pos'], closeSteam, restart }
   'POST /api/apply': async (req, res) => {
     const body = await readBody(req);
     await stream(res, async log => {
       const out = {};
       if (body.remove?.length) out.remove = await core.remove({ account: body.account, keys: body.remove, closeSteam: !!body.closeSteam }, log);
       if (body.install?.length) out.install = await core.install({ account: body.account, targets: body.install, closeSteam: !!body.closeSteam }, log);
+      const changed = out.install?.written?.length || out.remove?.removed?.length;
+      if (body.restart && changed) out.restart = await core.restart({ account: body.account }, log);
       return out;
     });
   },
 
-  // body: { account, startDota }
-  'POST /api/restart': async (req, res) => {
-    const body = await readBody(req);
-    await stream(res, log => core.restart({ account: body.account, startDota: body.startDota !== false }, log));
-  },
-
-  // body: { account, fresh }
+  // body: { account, fresh, restart }
   'POST /api/update': async (req, res) => {
     const body = await readBody(req);
-    await stream(res, log => core.install({ account: body.account, targets: 'installed', fresh: !!body.fresh }, log));
+    await stream(res, async log => {
+      const out = await core.install({ account: body.account, targets: 'installed', fresh: !!body.fresh }, log);
+      if (body.restart && out.written.length) out.restart = await core.restart({ account: body.account }, log);
+      return out;
+    });
   },
 };
 

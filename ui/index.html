@@ -211,7 +211,8 @@
     <p id="modalText"></p>
     <div class="actions">
       <button class="btn" id="modalCancel">Cancel</button>
-      <button class="btn primary" id="modalOk">Close Steam and continue</button>
+      <button class="btn" id="modalAlt" hidden></button>
+      <button class="btn primary" id="modalOk">Restart</button>
     </div>
   </div>
 </div>
@@ -234,18 +235,17 @@ const S = {
   creditValve: `Dota 2, the hero and item images and the attribute and role icons are property of ${VALVE_LINK}. This tool is free, unofficial and not affiliated with either Valve or D2PT.`,
   reset: 'Reset', updateInstalled: 'Update installed', apply: 'Apply', log: 'Log',
   removeAll: 'Remove all', removeAllTitle: 'Mark every installed build for removal',
-  restartBoth: 'Start Steam and Dota', restartDotaOnly: 'Restart Dota', later: 'Later',
-  restartTitle: 'Restart to see the guides',
-  restartTextSteam: 'Steam was closed so it could register the new guides. One click starts it, waits until the guides reach the cloud and launches Dota.',
-  restartTextDota: 'Dota only reads its guide list at startup. One click closes Dota, waits until Steam has uploaded the guides and starts the game again — Steam itself keeps running.',
   restartWarnDota: ' Dota is running right now and will be closed — not a good moment if you are in a match.',
   showLog: 'Show log', hideLog: 'Hide log',
   summaryAdd: '<b>+{n}</b> to install', summaryDel: '<b>−{n}</b> to remove', summaryInstalled: 'Installed builds: <b>{n}</b>',
   picTitle: 'Pick the most popular roles: {roles}', picTitleNone: 'none',
   picTitleClear: 'Clear this hero’s pending changes', picTitleDone: 'All its popular roles are already installed',
   posTitle: 'Pos {pos} — {role}: {matches} games{wr}{low}', posTitleWr: ', WR {wr}%', posTitleLow: ' (not enough data)',
-  steamModalTitle: 'Steam needs to be restarted', cancel: 'Cancel', closeSteamAndGo: 'Close Steam and continue',
-  steamModalText: 'To {what} guide(s), Steam has to be closed for a moment — otherwise it won’t see the changes. The tool closes it now, and once the guides are written it offers to start Steam and Dota again.',
+  cancel: 'Cancel', restartNow: 'Restart Steam and Dota', justDoIt: 'Without restarting',
+  askTitle: 'Restart Steam and Dota',
+  askWhat: 'About to {what} guide(s).', askWhatUpdate: 'About to update the installed guides.',
+  askTextSteamClosed: 'Dota only reads its guide list at startup, so it has to be restarted. One click writes the guides, starts Steam, waits until they reach the cloud and launches Dota.',
+  askTextSteamRunning: 'Steam must be closed while the guides are written, and Dota only reads its list at startup. One click does all of it: closes them, writes the guides, starts Steam, waits until they reach the cloud and launches Dota.',
   steamAdd: 'install {n}', steamDel: 'remove {n}',
   introTitle: 'D2PT builds right inside Dota',
   introLead: 'This tool takes the most popular hero builds from dota2protracker.com (7000+ MMR games) and adds them to the game as your own guides: items with timings, skill order and talents.',
@@ -461,54 +461,51 @@ function setLogOpen(open) {
 }
 $('#logBtn').onclick = () => setLogOpen(!$('#log').classList.contains('open'));
 
-function confirm({ title, text, ok, cancel }) {
+// Returns 'ok', 'alt' or false. The optional alt button is the "do it, but don't restart" way out.
+function confirm({ title, text, ok, alt, cancel }) {
   return new Promise(resolve => {
     $('#modalTitle').textContent = title;
     $('#modalText').textContent = text;
     $('#modalOk').textContent = ok;
     $('#modalCancel').textContent = cancel;
+    $('#modalAlt').textContent = alt || '';
+    $('#modalAlt').hidden = !alt;
     $('#modal').classList.add('open');
     const done = v => { $('#modal').classList.remove('open'); resolve(v); };
-    $('#modalOk').onclick = () => done(true);
+    $('#modalOk').onclick = () => done('ok');
+    $('#modalAlt').onclick = () => done('alt');
     $('#modalCancel').onclick = () => done(false);
   });
 }
 
-// Dota reads its guide list at startup, so whatever we just changed needs a restart.
-async function offerRestart() {
+// Writing guides needs Steam closed and Dota re-reads its list at startup, so installing and
+// restarting are one job: ask once, then do all of it.
+async function ask(what) {
   await loadState();
-  const go = await confirm({
-    title: T('restartTitle'),
-    text: T(state.steamRunning ? 'restartTextDota' : 'restartTextSteam') + (state.dotaRunning ? T('restartWarnDota') : ''),
-    ok: T(state.steamRunning ? 'restartDotaOnly' : 'restartBoth'),
-    cancel: T('later'),
+  const steamPart = state.steamRunning ? T('askTextSteamRunning') : T('askTextSteamClosed');
+  return confirm({
+    title: T('askTitle'),
+    text: what + ' ' + steamPart + (state.dotaRunning ? T('restartWarnDota') : ''),
+    ok: T('restartNow'), alt: T('justDoIt'), cancel: T('cancel'),
   });
-  if (go) await run('/api/restart', { account });
 }
 
 $('#applyBtn').onclick = async () => {
   const { add, del } = diff();
-  await loadState();
-  let closeSteam = false;
-  if (state.steamRunning) {
-    const what = [add.length && T('steamAdd', { n: add.length }), del.length && T('steamDel', { n: del.length })].filter(Boolean).join(' and ');
-    closeSteam = await confirm({
-      title: T('steamModalTitle'), text: T('steamModalText', { what }),
-      ok: T('closeSteamAndGo'), cancel: T('cancel'),
-    });
-    if (!closeSteam) return;
-  }
-  const res = await run('/api/apply', {
-    account, closeSteam,
+  const what = [add.length && T('steamAdd', { n: add.length }), del.length && T('steamDel', { n: del.length })].filter(Boolean).join(' and ');
+  const answer = await ask(T('askWhat', { what }));
+  if (!answer) return;
+  await run('/api/apply', {
+    account, closeSteam: true, restart: answer === 'ok',
     install: add.map(k => ({ npc: k.split(':')[0], pos: Number(k.split(':')[1]) })),
     remove: del,
   });
-  if (res?.install?.written?.length || res?.remove?.removed?.length) await offerRestart();
 };
 
 $('#updateBtn').onclick = async () => {
-  const res = await run('/api/update', { account });
-  if (res?.written?.length) await offerRestart();
+  const answer = await ask(T('askWhatUpdate'));
+  if (!answer) return;
+  await run('/api/update', { account, restart: answer === 'ok' });
 };
 
 async function run(url, body) {
