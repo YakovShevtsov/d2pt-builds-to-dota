@@ -242,7 +242,9 @@ const S = {
   picTitle: 'Pick the most popular roles: {roles}', picTitleNone: 'none',
   picTitleClear: 'Clear this hero’s pending changes', picTitleDone: 'All its popular roles are already installed',
   posTitle: 'Pos {pos} — {role}: {matches} games{wr}{low}', posTitleWr: ', WR {wr}%', posTitleLow: ' (not enough data)',
-  cancel: 'Cancel', restartNow: 'Restart',
+  cancel: 'Cancel', restartNow: 'Restart', launchNow: 'Launch Dota', later: 'Later',
+  doneTitleInstall: 'Guides installed', doneTitleUpdate: 'Guides updated',
+  doneText: 'Steam and Dota are closed right now. Start them so Dota picks up the guides? The tool waits until the guides reach the cloud before launching the game.',
   confirmDotaClose: 'Dota is running — I understand it will be closed',
   askTitle: 'Restart Steam and Dota',
   askWhat: 'About to {what} guide(s).', askWhatUpdate: 'About to update the installed guides.',
@@ -494,22 +496,35 @@ async function ask(what) {
   });
 }
 
+// With Steam and Dota already closed there is nothing to restart: write the guides first,
+// then offer to start the game.
+async function offerLaunch(title) {
+  const go = await confirm({ title, text: T('doneText'), ok: T('launchNow'), cancel: T('later') });
+  if (go) await run('/api/restart', { account });
+}
+
 $('#applyBtn').onclick = async () => {
   const { add, del } = diff();
-  const what = [add.length && T('steamAdd', { n: add.length }), del.length && T('steamDel', { n: del.length })].filter(Boolean).join(' and ');
-  const answer = await ask(T('askWhat', { what }));
-  if (!answer) return;
-  await run('/api/apply', {
-    account, closeSteam: true, restart: true,
+  await loadState();
+  const idle = !state.steamRunning && !state.dotaRunning;
+  if (!idle) {
+    const what = [add.length && T('steamAdd', { n: add.length }), del.length && T('steamDel', { n: del.length })].filter(Boolean).join(' and ');
+    if (!await ask(T('askWhat', { what }))) return;
+  }
+  const res = await run('/api/apply', {
+    account, closeSteam: true, restart: !idle,
     install: add.map(k => ({ npc: k.split(':')[0], pos: Number(k.split(':')[1]) })),
     remove: del,
   });
+  if (idle && (res?.install?.written?.length || res?.remove?.removed?.length)) await offerLaunch(T('doneTitleInstall'));
 };
 
 $('#updateBtn').onclick = async () => {
-  const answer = await ask(T('askWhatUpdate'));
-  if (!answer) return;
-  await run('/api/update', { account, restart: true });
+  await loadState();
+  const idle = !state.steamRunning && !state.dotaRunning;
+  if (!idle && !await ask(T('askWhatUpdate'))) return;
+  const res = await run('/api/update', { account, restart: !idle });
+  if (idle && res?.written?.length) await offerLaunch(T('doneTitleUpdate'));
 };
 
 async function run(url, body) {

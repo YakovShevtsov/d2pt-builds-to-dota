@@ -61,6 +61,12 @@ const routes = {
     catch (e) { json(res, 502, { error: e.message }); }
   },
 
+  // body: { account }
+  'POST /api/restart': async (req, res) => {
+    const body = await readBody(req);
+    await stream(res, log => core.restart({ account: body.account }, log));
+  },
+
   // body: { account, install: [{npc,pos}], remove: ['npc:pos'], closeSteam, restart }
   'POST /api/apply': async (req, res) => {
     const body = await readBody(req);
