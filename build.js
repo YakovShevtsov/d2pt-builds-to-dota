@@ -11,7 +11,7 @@ const ROOT = __dirname;
 const EMBEDDED = path.join(ROOT, 'src', 'embedded-assets.js');
 const OUT_DIR = path.join(ROOT, 'dist');
 const TARGET = process.argv[2] || 'bun-windows-x64';           // bun-linux-x64, bun-darwin-arm64, ...
-const NAME = TARGET.includes('windows') ? 'd2pt.exe' : 'd2pt';
+const NAME = 'd2pt-builds-to-dota' + (TARGET.includes('windows') ? '.exe' : '');
 
 const files = ['ui/index.html', 'data/item_ids.json', ...fs.readdirSync(path.join(ROOT, 'ui', 'assets')).map(f => 'ui/assets/' + f)];
 

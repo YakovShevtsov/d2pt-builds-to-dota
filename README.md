@@ -6,7 +6,7 @@
 
 ## Установка
 
-Скачай `d2pt.exe` из [релизов](https://github.com/YakovShevtsov/d2pt-builds-to-dota/releases)
+Скачай `d2pt-builds-to-dota.exe` из [релизов](https://github.com/YakovShevtsov/d2pt-builds-to-dota/releases)
 и запусти двойным кликом — откроется страница в браузере. Ставить ничего не нужно.
 
 Мелочи при первом запуске:
@@ -43,8 +43,8 @@
 Нужен [Bun](https://bun.sh) (`winget install oven-sh.bun`). Собирается одной командой:
 
 ```
-node build.js                 # dist/d2pt.exe для Windows
-node build.js bun-linux-x64   # dist/d2pt для Linux (код под Linux ещё не адаптирован)
+node build.js                 # dist/d2pt-builds-to-dota.exe для Windows
+node build.js bun-linux-x64   # dist/d2pt-builds-to-dota для Linux (код под Linux ещё не адаптирован)
 ```
 
 Страница, иконки и список предметов вшиваются внутрь файла. Свои данные (список установленных

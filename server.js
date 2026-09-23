@@ -9,6 +9,8 @@ const steam = require('./src/steam');
 const runtime = require('./src/runtime');
 const VERSION = require('./src/version');
 
+process.title = `D2PT -> Dota 2 v${VERSION}`; // what the console window and Task Manager show
+
 const PORT = Number(process.env.PORT) || 7353;
 const RUN_ID = Date.now().toString(36); // changes on every start.bat launch -> welcome screen shows once per run
 let busy = false;
