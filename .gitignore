@@ -3,8 +3,6 @@ data/manifest.json
 data/cache/
 out/
 
-# Build output
-
 # Local tooling
 .claude/
 node_modules/
