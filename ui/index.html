@@ -248,15 +248,19 @@ const S = {
   picTitleClear: 'Clear this hero’s pending changes', picTitleDone: 'All its popular roles are already installed',
   posTitle: 'Pos {pos} — {role}: {matches} games{wr}{low}', posTitleWr: ', WR {wr}%', posTitleLow: ' (not enough data)',
   cancel: 'Cancel', restartNow: 'Restart', launchNow: 'Launch Dota', later: 'Later',
-  doneTitleInstall: 'Guides installed', doneTitleUpdate: 'Guides updated',
-  doneText: 'Steam and Dota are closed right now. Start them so Dota picks up the guides? The tool waits until the guides reach the cloud before launching the game.',
   confirmDotaClose: 'Dota is running — I understand it will be closed',
-  askTitleBoth: 'Restart Steam and Dota', askTitleSteam: 'Restart Steam and launch Dota', askTitleDota: 'Restart Dota and start Steam',
-  askWhat: 'About to {what} guide(s).', askWhatUpdate: 'About to update the installed guides.',
-  askTextBoth: 'Steam has to be closed while the guides are written, and Dota only reads its list at startup. One click does all of it: closes Dota and Steam, writes the guides, starts Steam, waits until the guides reach the cloud and launches Dota.',
-  askTextSteam: 'Steam has to be closed while the guides are written, and Dota only sees them once it starts. One click does all of it: closes Steam, writes the guides, starts it again, waits until the guides reach the cloud and launches Dota.',
-  askTextDota: 'Dota only reads its guide list at startup. One click does all of it: closes Dota, writes the guides, starts Steam, waits until the guides reach the cloud and launches the game.',
-  steamAdd: 'install {n}', steamDel: 'remove {n}',
+  // what the click is about to do
+  actionInstall: 'Installing {add}.', actionRemove: 'Removing {del}.',
+  actionBoth: 'Installing {add} and removing {delN}.', actionUpdate: 'Updating {n}.',
+  // why a restart is needed, one line per situation
+  askTitleBoth: 'Restart Steam and Dota', askTitleSteam: 'Restart Steam and launch Dota', askTitleDota: 'Restart Dota',
+  askTextBoth: 'Steam and Dota will be closed and started again — Dota only loads guides at startup.',
+  askTextSteam: 'Steam will be restarted, then Dota starts with the new guides.',
+  askTextDota: 'Dota will be closed and started again with Steam.',
+  // after installing with both apps closed
+  doneInstalled: '{add} installed', doneRemoved: '{del} removed', doneUpdated: '{n} updated',
+  doneBoth: '{add} installed, {delN} removed',
+  doneText: 'Start Dota to use them? Steam will start first.',
   introTitle: 'D2PT builds right inside Dota',
   introLead: 'This tool takes the most popular hero builds from dota2protracker.com (7000+ MMR games) and adds them to the game as your own guides: items with timings, skill order and talents.',
   introStep1: '<b>Pick heroes and roles.</b> Click 1–5 under a hero, or click the portrait to take its most popular roles.',
@@ -495,12 +499,14 @@ function confirm({ title, text, ok, cancel, check }) {
 
 // Writing guides needs Steam closed and Dota re-reads its list at startup, so installing and
 // restarting are one job: ask once, then do all of it.
-async function ask(what) {
+const guides = n => `${n} guide${n === 1 ? '' : 's'}`;
+
+async function ask(action) {
   await loadState();
   const which = state.steamRunning && state.dotaRunning ? 'Both' : state.steamRunning ? 'Steam' : 'Dota';
   return confirm({
     title: T('askTitle' + which),
-    text: what + ' ' + T('askText' + which),
+    text: action + ' ' + T('askText' + which),
     ok: T('restartNow'), cancel: T('cancel'),
     check: state.dotaRunning ? T('confirmDotaClose') : null,
   });
@@ -517,24 +523,29 @@ $('#applyBtn').onclick = async () => {
   const { add, del } = diff();
   await loadState();
   const idle = !state.steamRunning && !state.dotaRunning;
+  const counts = { add: guides(add.length), del: guides(del.length), delN: del.length };
   if (!idle) {
-    const what = [add.length && T('steamAdd', { n: add.length }), del.length && T('steamDel', { n: del.length })].filter(Boolean).join(' and ');
-    if (!await ask(T('askWhat', { what }))) return;
+    const action = add.length && del.length ? T('actionBoth', counts) : add.length ? T('actionInstall', counts) : T('actionRemove', counts);
+    if (!await ask(action)) return;
   }
   const res = await run('/api/apply', {
     account, closeSteam: true, restart: !idle,
     install: add.map(k => ({ npc: k.split(':')[0], pos: Number(k.split(':')[1]) })),
     remove: del,
   });
-  if (idle && (res?.install?.written?.length || res?.remove?.removed?.length)) await offerLaunch(T('doneTitleInstall'));
+  const wrote = res?.install?.written?.length || 0, removed = res?.remove?.removed?.length || 0;
+  if (idle && (wrote || removed)) {
+    const done = { add: guides(wrote), del: guides(removed), delN: removed };
+    await offerLaunch(wrote && removed ? T('doneBoth', done) : wrote ? T('doneInstalled', done) : T('doneRemoved', done));
+  }
 };
 
 $('#updateBtn').onclick = async () => {
   await loadState();
   const idle = !state.steamRunning && !state.dotaRunning;
-  if (!idle && !await ask(T('askWhatUpdate'))) return;
+  if (!idle && !await ask(T('actionUpdate', { n: guides(installed.size) }))) return;
   const res = await run('/api/update', { account, restart: !idle });
-  if (idle && res?.written?.length) await offerLaunch(T('doneTitleUpdate'));
+  if (idle && res?.written?.length) await offerLaunch(T('doneUpdated', { n: guides(res.written.length) }));
 };
 
 async function run(url, body) {
