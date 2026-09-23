@@ -3,8 +3,7 @@ data/manifest.json
 data/cache/
 out/
 
-# Share archive (built by pack.js)
-d2pt-guides.zip
+# Build output
 
 # Local tooling
 .claude/
