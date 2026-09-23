@@ -25,7 +25,10 @@ class TransportError extends Error {}
 
 function curlGet(url) {
   return new Promise((resolve, reject) => {
-    execFile(CURL, ['-sS', '--max-time', '30', '-A', UA, '-H', 'Accept: application/json, text/plain, */*', '-w', '\n%{http_code}', url],
+    // D2PT's API answers 403 to requests that don't carry a Referer from its own pages.
+    execFile(CURL, ['-sS', '--max-time', '30', '-A', UA,
+      '-H', 'Accept: application/json, text/plain, */*', '-H', `Referer: ${ORIGIN}/`,
+      '-w', '\n%{http_code}', url],
       { encoding: 'utf8', maxBuffer: 64 * 1024 * 1024, windowsHide: true },
       (err, stdout, stderr) => {
         if (err) {
@@ -68,12 +71,16 @@ async function createClient({ mode = 'auto', log = () => {}, cacheDir = null, fr
   }
 
   let last = 0;
-  async function fetchJson(apiPath) {
+  async function fetchJson(apiPath, retry = true) {
     const wait = last + REQUEST_DELAY_MS - Date.now();
     if (wait > 0) await sleep(wait);
     last = Date.now();
     const r = await raw(ORIGIN + apiPath);
-    if (isLimited(r)) throw new LimitedError(t('err.limited'));
+    if (isLimited(r)) {
+      if (!retry) throw new LimitedError(t('err.limited'));
+      await sleep(3000);               // a refusal is often transient; give it one more go
+      return fetchJson(apiPath, false);
+    }
     if (r.status !== 200) throw new Error(t('err.http', { path: apiPath, status: r.status }));
     return JSON.parse(r.body);
   }

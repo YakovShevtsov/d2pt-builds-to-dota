@@ -52,7 +52,7 @@ const STRINGS = {
     noSteam: 'Steam not found',
     steamNotClosed: 'Steam did not close within 60 seconds',
     badCache: 'Unexpected remotecache.vdf format',
-    limited: 'D2PT is rate-limiting requests right now. Try again in a couple of hours.',
+    limited: 'D2PT refused the request (403). Try again in a few minutes.',
     curlOnly: 'Cloudflare is blocking curl and the browser mode is off (--fetch curl)',
     browserChallenged: 'Cloudflare blocked the browser too. Try again later.',
     noBrowser: 'No Chromium-based browser found (Chrome, Edge, Yandex, Opera, Brave, Vivaldi)',
