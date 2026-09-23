@@ -234,10 +234,10 @@ const S = {
   creditValve: `Dota 2, the hero and item images and the attribute and role icons are property of ${VALVE_LINK}. This tool is free, unofficial and not affiliated with either Valve or D2PT.`,
   reset: 'Reset', updateInstalled: 'Update installed', apply: 'Apply', log: 'Log',
   removeAll: 'Remove all', removeAllTitle: 'Mark every installed build for removal',
-  launchBoth: 'Start Steam & Dota', launchDota: 'Restart Dota', later: 'Later',
+  restartBoth: 'Restart Steam and Dota', later: 'Later',
   restartTitle: 'Restart to see the guides',
-  restartTextSteam: 'Steam was closed so it could register the guides. Start it again and Dota will show them — the tool can do both for you and will wait until the guides reach the cloud.',
-  restartTextDota: 'Dota reads its guide list at startup, so it needs a restart. Close the game first if it is running; the tool will wait until the guides reach the cloud and then start Dota.',
+  restartText: 'Dota only reads its guide list at startup, and Steam only publishes new guides when it restarts. One click does all of it: closes Dota if it is running, restarts Steam, waits until the guides reach the cloud and starts the game.',
+  restartWarnDota: ' Dota is running right now and will be closed — not a good moment if you are in a match.',
   showLog: 'Show log', hideLog: 'Hide log',
   summaryAdd: '<b>+{n}</b> to install', summaryDel: '<b>−{n}</b> to remove', summaryInstalled: 'Installed builds: <b>{n}</b>',
   picTitle: 'Pick the most popular roles: {roles}', picTitleNone: 'none',
@@ -478,11 +478,11 @@ async function offerRestart() {
   await loadState();
   const go = await confirm({
     title: T('restartTitle'),
-    text: T(state.steamRunning ? 'restartTextDota' : 'restartTextSteam'),
-    ok: T(state.steamRunning ? 'launchDota' : 'launchBoth'),
+    text: T('restartText') + (state.dotaRunning ? T('restartWarnDota') : ''),
+    ok: T('restartBoth'),
     cancel: T('later'),
   });
-  if (go) await run('/api/launch', { account });
+  if (go) await run('/api/restart', { account });
 }
 
 $('#applyBtn').onclick = async () => {

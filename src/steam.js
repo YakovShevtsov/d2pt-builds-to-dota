@@ -59,6 +59,11 @@ async function waitForProcess(image, running, timeoutMs = 60000) {
   return isProcessRunning(image) === running;
 }
 
+// Dota ignores a launch request while it is running, so it has to be closed first.
+function closeDota() {
+  try { execFileSync('taskkill', ['/IM', 'dota2.exe', '/F'], { stdio: 'ignore', windowsHide: true }); } catch {}
+}
+
 function startSteam(steamRoot) {
   spawn(path.join(steamRoot, 'steam.exe'), [], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
 }
@@ -137,6 +142,6 @@ function unregisterFiles(accountDir, relPaths) {
 }
 
 module.exports = {
-  findSteamRoot, listAccounts, isProcessRunning, waitForProcess, shutdownSteam, startSteam, launchDota,
+  findSteamRoot, listAccounts, isProcessRunning, waitForProcess, shutdownSteam, startSteam, launchDota, closeDota,
   isRegistered, registerFiles, unregisterFiles, waitCloudSynced,
 };

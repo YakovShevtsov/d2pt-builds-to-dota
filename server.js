@@ -73,9 +73,9 @@ const routes = {
   },
 
   // body: { account, startDota }
-  'POST /api/launch': async (req, res) => {
+  'POST /api/restart': async (req, res) => {
     const body = await readBody(req);
-    await stream(res, log => core.launch({ account: body.account, startDota: body.startDota !== false }, log));
+    await stream(res, log => core.restart({ account: body.account, startDota: body.startDota !== false }, log));
   },
 
   // body: { account, fresh }

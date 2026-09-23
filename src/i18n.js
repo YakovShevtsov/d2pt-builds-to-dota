@@ -39,6 +39,8 @@ const STRINGS = {
     removed: '  − removed {key}',
     removedTotal: 'Removed: {n}.',
     closingSteam: 'Closing Steam...',
+    closingDota: 'Closing Dota...',
+    restartingSteam: 'Restarting Steam...',
     startingSteam: 'Starting Steam...',
     steamReady: 'Steam is running.',
     waitingSync: 'Waiting for Steam to upload the guides to the cloud...',
