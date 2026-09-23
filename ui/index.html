@@ -176,6 +176,7 @@
   <div class="bar">
     <span class="summary" id="summary"></span>
     <div class="spacer"></div>
+    <button class="btn" id="launchBtn">Start Steam &amp; Dota</button>
     <button class="btn" id="resetBtn" data-i18n="reset">Reset</button>
     <button class="btn" id="removeAllBtn" data-i18n="removeAll" data-i18n-title="removeAllTitle" title="Mark every installed build for removal">Remove all</button>
     <button class="btn" id="updateBtn" data-i18n="updateInstalled">Update installed</button>
@@ -234,6 +235,9 @@ const S = {
   creditValve: `Dota 2, the hero and item images and the attribute and role icons are property of ${VALVE_LINK}. This tool is free, unofficial and not affiliated with either Valve or D2PT.`,
   reset: 'Reset', updateInstalled: 'Update installed', apply: 'Apply', log: 'Log',
   removeAll: 'Remove all', removeAllTitle: 'Mark every installed build for removal',
+  launchBoth: 'Start Steam & Dota', launchDota: 'Launch Dota',
+  launchTitle: 'Starts Steam, waits until the guides reach the cloud, then launches Dota',
+  launchTitleDotaRunning: 'Dota is already running — restart it to pick up new guides',
   showLog: 'Show log', hideLog: 'Hide log',
   summaryAdd: '<b>+{n}</b> to install', summaryDel: '<b>−{n}</b> to remove', summaryInstalled: 'Installed builds: <b>{n}</b>',
   picTitle: 'Pick the most popular roles: {roles}', picTitleNone: 'none',
@@ -411,6 +415,10 @@ function updateDock() {
     : T('apply');
   $('#updateBtn').disabled = busy || !installed.size;
   $('#removeAllBtn').disabled = busy || !installed.size || [...installed].every(k => qDel.has(k));
+  const launch = $('#launchBtn');
+  launch.textContent = T(state.steamRunning ? 'launchDota' : 'launchBoth');
+  launch.title = T(state.dotaRunning ? 'launchTitleDotaRunning' : 'launchTitle');
+  launch.disabled = busy || state.dotaRunning;
   $('#resetBtn').disabled = busy || (!add.length && !del.length);
 }
 
@@ -483,6 +491,7 @@ $('#applyBtn').onclick = async () => {
 };
 
 $('#updateBtn').onclick = () => run('/api/update', { account });
+$('#launchBtn').onclick = () => run('/api/launch', { account });
 
 async function run(url, body) {
   busy = true; updateDock();

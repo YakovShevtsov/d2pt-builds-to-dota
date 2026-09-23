@@ -2,7 +2,7 @@
 const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
-const { execFileSync } = require('child_process');
+const { execFileSync, spawn } = require('child_process');
 const { t } = require('./i18n');
 
 const STEAMID64_BASE = 76561197960265728n;
@@ -51,7 +51,43 @@ async function shutdownSteam(steamRoot, log = () => {}) {
   throw new Error(t('err.steamNotClosed'));
 }
 
+async function waitForProcess(image, running, timeoutMs = 60000) {
+  for (let waited = 0; waited < timeoutMs; waited += 1000) {
+    if (isProcessRunning(image) === running) return true;
+    await sleep(1000);
+  }
+  return isProcessRunning(image) === running;
+}
+
+function startSteam(steamRoot) {
+  spawn(path.join(steamRoot, 'steam.exe'), [], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+}
+
+// Steam's own way of starting a game; 570 is Dota 2.
+function launchDota(steamRoot) {
+  spawn(path.join(steamRoot, 'steam.exe'), ['-applaunch', '570'], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+}
+
 const cachePath = accountDir => path.join(accountDir, 'remotecache.vdf');
+
+// Guides we just wrote are marked "pending upload" (syncstate 3) until Steam sends them to the
+// cloud. Dota only sees them afterwards, so we wait for that before launching the game.
+async function waitCloudSynced(accountDir, relPaths, timeoutMs = 90000) {
+  const pending = () => {
+    const f = cachePath(accountDir);
+    if (!fs.existsSync(f)) return false;
+    const text = fs.readFileSync(f, 'utf8');
+    return relPaths.some(rel => {
+      const m = text.match(new RegExp(`"${rel.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&')}"\\s*\\{([^}]*)\\}`));
+      return m && /"syncstate"\s+"3"/.test(m[1]);
+    });
+  };
+  for (let waited = 0; waited < timeoutMs; waited += 2000) {
+    if (!pending()) return true;
+    await sleep(2000);
+  }
+  return !pending();
+}
 
 function isRegistered(accountDir, relPath) {
   const f = cachePath(accountDir);
@@ -100,4 +136,7 @@ function unregisterFiles(accountDir, relPaths) {
   return present;
 }
 
-module.exports = { findSteamRoot, listAccounts, isProcessRunning, shutdownSteam, isRegistered, registerFiles, unregisterFiles };
+module.exports = {
+  findSteamRoot, listAccounts, isProcessRunning, waitForProcess, shutdownSteam, startSteam, launchDota,
+  isRegistered, registerFiles, unregisterFiles, waitCloudSynced,
+};

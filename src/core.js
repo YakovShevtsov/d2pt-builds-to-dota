@@ -184,8 +184,31 @@ async function remove({ steamRoot, account, keys, closeSteam = false }, log = ()
   return { removed: list };
 }
 
+// Starts Steam if needed, waits until our guides reach the cloud, then launches Dota.
+async function launch({ steamRoot, account, startDota = true }, log = () => {}) {
+  const root = steamRoot || steam.findSteamRoot();
+  const acc = findAccount(root, account);
+  if (!steam.isProcessRunning('steam.exe')) {
+    log(t('log.startingSteam'));
+    steam.startSteam(root);
+    if (!await steam.waitForProcess('steam.exe', true)) throw new Error(t('err.steamNotStarted'));
+    log(t('log.steamReady'));
+  }
+  const mine = loadManifest().accounts[acc.accountId] || {};
+  const rels = Object.values(mine).map(e => 'guides/' + e.file);
+  if (rels.length) {
+    log(t('log.waitingSync'));
+    log(await steam.waitCloudSynced(acc.dir, rels) ? t('log.syncDone') : t('log.syncSlow'));
+  }
+  if (!startDota) return { steamStarted: true };
+  if (steam.isProcessRunning('dota2.exe')) { log(t('log.dotaAlreadyRunning')); return { dotaAlreadyRunning: true }; }
+  log(t('log.launchingDota'));
+  steam.launchDota(root);
+  return { launched: true };
+}
+
 function status() {
   return { steamRunning: steam.isProcessRunning('steam.exe'), dotaRunning: steam.isProcessRunning('dota2.exe') };
 }
 
-module.exports = { listAccounts, findAccount, getHeroes, resolveSpecs, install, remove, status, mainPositions, posMatches, norm, ROOT, DATA };
+module.exports = { listAccounts, findAccount, getHeroes, resolveSpecs, install, remove, launch, status, mainPositions, posMatches, norm, ROOT, DATA };
