@@ -9,3 +9,7 @@ d2pt-guides.zip
 # Local tooling
 .claude/
 node_modules/
+
+# Packaged build
+dist/
+src/embedded-assets.js

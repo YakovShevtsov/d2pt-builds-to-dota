@@ -6,10 +6,10 @@ const path = require('path');
 const { execFile } = require('child_process');
 const core = require('./src/core');
 const steam = require('./src/steam');
+const runtime = require('./src/runtime');
 
 const PORT = Number(process.env.PORT) || 7353;
 const RUN_ID = Date.now().toString(36); // changes on every start.bat launch -> welcome screen shows once per run
-const UI = path.join(__dirname, 'ui', 'index.html');
 let busy = false;
 
 function json(res, code, data) {
@@ -47,7 +47,7 @@ async function stream(res, job) {
 const routes = {
   'GET /': (req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' });
-    fs.createReadStream(UI).pipe(res);
+    res.end(runtime.readFile('ui/index.html'));
   },
 
   'GET /api/state': (req, res) => {
@@ -79,14 +79,13 @@ const routes = {
   },
 };
 
-const ASSETS = path.join(__dirname, 'ui', 'assets');
 const MIME = { '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
 function serveAsset(res, name) {
   const type = MIME[path.extname(name).toLowerCase()];
-  const file = path.join(ASSETS, path.basename(name)); // basename: no path traversal
-  if (!type || !fs.existsSync(file)) { res.writeHead(404); return res.end(); }
+  const data = type && runtime.readFile('ui/assets/' + path.basename(name)); // basename: no path traversal
+  if (!data) { res.writeHead(404); return res.end(); }
   res.writeHead(200, { 'Content-Type': type, 'Cache-Control': 'max-age=86400' });
-  fs.createReadStream(file).pipe(res);
+  res.end(data);
 }
 
 const server = http.createServer(async (req, res) => {
