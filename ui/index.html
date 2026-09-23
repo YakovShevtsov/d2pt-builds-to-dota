@@ -56,6 +56,8 @@
   .hero .pic { position: relative; display: block; width: 100%; aspect-ratio: 16/9; border: 0; padding: 0; background: #0b0d10; overflow: hidden; }
   .hero .pic img { width: 100%; height: 100%; object-fit: cover; display: block; transition: transform .2s, filter .2s; filter: saturate(.85); }
   .hero .pic:hover img { transform: scale(1.04); filter: saturate(1.1); }
+  .hero .pic.idle { cursor: default; }
+  .hero .pic.idle:hover img { transform: none; filter: saturate(.85); }
   .hero .name { display: flex; align-items: center; gap: 6px; padding: 7px 9px 5px; font-weight: 600; font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .hero .name .a { width: 14px; height: 14px; object-fit: contain; flex: none; }
   .pos-row { display: grid; grid-template-columns: repeat(5, 1fr); gap: 4px; padding: 0 8px 8px; }
@@ -235,6 +237,7 @@ const S = {
   showLog: 'Show log', hideLog: 'Hide log',
   summaryAdd: '<b>+{n}</b> to install', summaryDel: '<b>−{n}</b> to remove', summaryInstalled: 'Installed builds: <b>{n}</b>',
   picTitle: 'Pick the most popular roles: {roles}', picTitleNone: 'none',
+  picTitleClear: 'Clear this hero’s pending changes', picTitleDone: 'All its popular roles are already installed',
   posTitle: 'Pos {pos} — {role}: {matches} games{wr}{low}', posTitleWr: ', WR {wr}%', posTitleLow: ' (not enough data)',
   steamModalTitle: 'Steam needs to be closed', cancel: 'Cancel', closeSteamAndGo: 'Close Steam and continue',
   steamModalText: 'To {what} guide(s), Steam has to be closed — otherwise it won’t see the changes. The tool will close Steam for you; start it again afterwards.',
@@ -363,13 +366,21 @@ function posClass(h, p) {
 }
 // A hero is highlighted only while it has something pending.
 const heroPending = h => h.positions.some(p => { const k = key(h.npc, p.pos); return qAdd.has(k) || qDel.has(k); });
+// What clicking the portrait does: clear this hero's pending changes, queue its missing
+// popular roles, or nothing at all when they are all installed already.
+const picAction = h => heroPending(h) ? 'clear' : (h.main.some(p => !installed.has(key(h.npc, p))) ? 'pick' : '');
+const picHint = h => ({
+  clear: T('picTitleClear'),
+  pick: T('picTitle', { roles: h.main.map(p => 'Pos ' + p).join(', ') || T('picTitleNone') }),
+  '': T('picTitleDone'),
+}[picAction(h)]);
 
 function render() {
   const list = heroes.filter(visible);
   $('#empty').hidden = list.length > 0;
   $('#grid').innerHTML = list.map(h => {
     return `<div class="hero${heroPending(h) ? ' has-sel' : ''}" data-npc="${h.npc}">
-      <button class="pic" title="${T('picTitle', { roles: h.main.map(p => 'Pos ' + p).join(', ') || T('picTitleNone') })}">
+      <button class="pic${picAction(h) ? '' : ' idle'}" title="${picHint(h)}">
         <img src="${ICON(h.npc)}" alt="" loading="lazy" onerror="this.remove()">
       </button>
       <div class="name"><img class="a" src="/assets/attr_${ATTR[h.attr] || 'universal'}.png" alt="" title="${ATTR_NAME[h.attr] || ''}">${esc(h.name)}</div>
