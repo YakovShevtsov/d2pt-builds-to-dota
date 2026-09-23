@@ -247,10 +247,11 @@ const S = {
   doneTitleInstall: 'Guides installed', doneTitleUpdate: 'Guides updated',
   doneText: 'Steam and Dota are closed right now. Start them so Dota picks up the guides? The tool waits until the guides reach the cloud before launching the game.',
   confirmDotaClose: 'Dota is running — I understand it will be closed',
-  askTitle: 'Restart Steam and Dota',
+  askTitleBoth: 'Restart Steam and Dota', askTitleSteam: 'Restart Steam and launch Dota', askTitleDota: 'Restart Dota and start Steam',
   askWhat: 'About to {what} guide(s).', askWhatUpdate: 'About to update the installed guides.',
-  askTextSteamClosed: 'Dota only reads its guide list at startup, so it has to be restarted. One click writes the guides, starts Steam, waits until they reach the cloud and launches Dota.',
-  askTextSteamRunning: 'Steam must be closed while the guides are written, and Dota only reads its list at startup. One click does all of it: closes them, writes the guides, starts Steam, waits until they reach the cloud and launches Dota.',
+  askTextBoth: 'Steam has to be closed while the guides are written, and Dota only reads its list at startup. One click does all of it: closes Dota and Steam, writes the guides, starts Steam, waits until the guides reach the cloud and launches Dota.',
+  askTextSteam: 'Steam has to be closed while the guides are written, and Dota only sees them once it starts. One click does all of it: closes Steam, writes the guides, starts it again, waits until the guides reach the cloud and launches Dota.',
+  askTextDota: 'Dota only reads its guide list at startup. One click does all of it: closes Dota, writes the guides, starts Steam, waits until the guides reach the cloud and launches the game.',
   steamAdd: 'install {n}', steamDel: 'remove {n}',
   introTitle: 'D2PT builds right inside Dota',
   introLead: 'This tool takes the most popular hero builds from dota2protracker.com (7000+ MMR games) and adds them to the game as your own guides: items with timings, skill order and talents.',
@@ -489,9 +490,10 @@ function confirm({ title, text, ok, cancel, check }) {
 // restarting are one job: ask once, then do all of it.
 async function ask(what) {
   await loadState();
+  const which = state.steamRunning && state.dotaRunning ? 'Both' : state.steamRunning ? 'Steam' : 'Dota';
   return confirm({
-    title: T('askTitle'),
-    text: what + ' ' + T(state.steamRunning ? 'askTextSteamRunning' : 'askTextSteamClosed'),
+    title: T('askTitle' + which),
+    text: what + ' ' + T('askText' + which),
     ok: T('restartNow'), cancel: T('cancel'),
     check: state.dotaRunning ? T('confirmDotaClose') : null,
   });
