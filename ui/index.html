@@ -234,9 +234,10 @@ const S = {
   creditValve: `Dota 2, the hero and item images and the attribute and role icons are property of ${VALVE_LINK}. This tool is free, unofficial and not affiliated with either Valve or D2PT.`,
   reset: 'Reset', updateInstalled: 'Update installed', apply: 'Apply', log: 'Log',
   removeAll: 'Remove all', removeAllTitle: 'Mark every installed build for removal',
-  restartBoth: 'Restart Steam and Dota', later: 'Later',
+  restartBoth: 'Start Steam and Dota', restartDotaOnly: 'Restart Dota', later: 'Later',
   restartTitle: 'Restart to see the guides',
-  restartText: 'Dota only reads its guide list at startup, and Steam only publishes new guides when it restarts. One click does all of it: closes Dota if it is running, restarts Steam, waits until the guides reach the cloud and starts the game.',
+  restartTextSteam: 'Steam was closed so it could register the new guides. One click starts it, waits until the guides reach the cloud and launches Dota.',
+  restartTextDota: 'Dota only reads its guide list at startup. One click closes Dota, waits until Steam has uploaded the guides and starts the game again — Steam itself keeps running.',
   restartWarnDota: ' Dota is running right now and will be closed — not a good moment if you are in a match.',
   showLog: 'Show log', hideLog: 'Hide log',
   summaryAdd: '<b>+{n}</b> to install', summaryDel: '<b>−{n}</b> to remove', summaryInstalled: 'Installed builds: <b>{n}</b>',
@@ -478,8 +479,8 @@ async function offerRestart() {
   await loadState();
   const go = await confirm({
     title: T('restartTitle'),
-    text: T('restartText') + (state.dotaRunning ? T('restartWarnDota') : ''),
-    ok: T('restartBoth'),
+    text: T(state.steamRunning ? 'restartTextDota' : 'restartTextSteam') + (state.dotaRunning ? T('restartWarnDota') : ''),
+    ok: T(state.steamRunning ? 'restartDotaOnly' : 'restartBoth'),
     cancel: T('later'),
   });
   if (go) await run('/api/restart', { account });

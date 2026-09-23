@@ -194,15 +194,16 @@ async function restart({ steamRoot, account, startDota = true }, log = () => {})
     steam.closeDota();
     await steam.waitForProcess('dota2.exe', false, 20000);
   }
+  // The cloud index is only ever edited while Steam is closed, so a running Steam means
+  // nothing was registered this time and it can keep running.
   if (steam.isProcessRunning('steam.exe')) {
-    log(t('log.restartingSteam'));
-    await steam.shutdownSteam(root, () => {});
+    log(t('log.steamKeepsRunning'));
   } else {
     log(t('log.startingSteam'));
+    steam.startSteam(root);
+    if (!await steam.waitForProcess('steam.exe', true)) throw new Error(t('err.steamNotStarted'));
+    log(t('log.steamReady'));
   }
-  steam.startSteam(root);
-  if (!await steam.waitForProcess('steam.exe', true)) throw new Error(t('err.steamNotStarted'));
-  log(t('log.steamReady'));
   const mine = loadManifest().accounts[acc.accountId] || {};
   const rels = Object.values(mine).map(e => 'guides/' + e.file);
   if (rels.length) {

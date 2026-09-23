@@ -40,7 +40,7 @@ const STRINGS = {
     removedTotal: 'Removed: {n}.',
     closingSteam: 'Closing Steam...',
     closingDota: 'Closing Dota...',
-    restartingSteam: 'Restarting Steam...',
+    steamKeepsRunning: 'Steam is already running, no restart needed.',
     startingSteam: 'Starting Steam...',
     steamReady: 'Steam is running.',
     waitingSync: 'Waiting for Steam to upload the guides to the cloud...',
