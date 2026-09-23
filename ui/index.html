@@ -176,7 +176,6 @@
   <div class="bar">
     <span class="summary" id="summary"></span>
     <div class="spacer"></div>
-    <button class="btn" id="launchBtn">Start Steam &amp; Dota</button>
     <button class="btn" id="resetBtn" data-i18n="reset">Reset</button>
     <button class="btn" id="removeAllBtn" data-i18n="removeAll" data-i18n-title="removeAllTitle" title="Mark every installed build for removal">Remove all</button>
     <button class="btn" id="updateBtn" data-i18n="updateInstalled">Update installed</button>
@@ -208,11 +207,11 @@
 
 <div class="modal-bg" id="modal">
   <div class="modal">
-    <h2 data-i18n="steamModalTitle">Steam needs to be closed</h2>
+    <h2 id="modalTitle">Steam needs to be closed</h2>
     <p id="modalText"></p>
     <div class="actions">
-      <button class="btn" id="modalCancel" data-i18n="cancel">Cancel</button>
-      <button class="btn primary" id="modalOk" data-i18n="closeSteamAndGo">Close Steam and continue</button>
+      <button class="btn" id="modalCancel">Cancel</button>
+      <button class="btn primary" id="modalOk">Close Steam and continue</button>
     </div>
   </div>
 </div>
@@ -235,9 +234,10 @@ const S = {
   creditValve: `Dota 2, the hero and item images and the attribute and role icons are property of ${VALVE_LINK}. This tool is free, unofficial and not affiliated with either Valve or D2PT.`,
   reset: 'Reset', updateInstalled: 'Update installed', apply: 'Apply', log: 'Log',
   removeAll: 'Remove all', removeAllTitle: 'Mark every installed build for removal',
-  launchBoth: 'Start Steam & Dota', launchDota: 'Launch Dota',
-  launchTitle: 'Starts Steam, waits until the guides reach the cloud, then launches Dota',
-  launchTitleDotaRunning: 'Dota is already running — restart it to pick up new guides',
+  launchBoth: 'Start Steam & Dota', launchDota: 'Restart Dota', later: 'Later',
+  restartTitle: 'Restart to see the guides',
+  restartTextSteam: 'Steam was closed so it could register the guides. Start it again and Dota will show them — the tool can do both for you and will wait until the guides reach the cloud.',
+  restartTextDota: 'Dota reads its guide list at startup, so it needs a restart. Close the game first if it is running; the tool will wait until the guides reach the cloud and then start Dota.',
   showLog: 'Show log', hideLog: 'Hide log',
   summaryAdd: '<b>+{n}</b> to install', summaryDel: '<b>−{n}</b> to remove', summaryInstalled: 'Installed builds: <b>{n}</b>',
   picTitle: 'Pick the most popular roles: {roles}', picTitleNone: 'none',
@@ -415,10 +415,6 @@ function updateDock() {
     : T('apply');
   $('#updateBtn').disabled = busy || !installed.size;
   $('#removeAllBtn').disabled = busy || !installed.size || [...installed].every(k => qDel.has(k));
-  const launch = $('#launchBtn');
-  launch.textContent = T(state.steamRunning ? 'launchDota' : 'launchBoth');
-  launch.title = T(state.dotaRunning ? 'launchTitleDotaRunning' : 'launchTitle');
-  launch.disabled = busy || state.dotaRunning;
   $('#resetBtn').disabled = busy || (!add.length && !del.length);
 }
 
@@ -464,14 +460,29 @@ function setLogOpen(open) {
 }
 $('#logBtn').onclick = () => setLogOpen(!$('#log').classList.contains('open'));
 
-function confirmSteamClose(text) {
+function confirm({ title, text, ok, cancel }) {
   return new Promise(resolve => {
+    $('#modalTitle').textContent = title;
     $('#modalText').textContent = text;
+    $('#modalOk').textContent = ok;
+    $('#modalCancel').textContent = cancel;
     $('#modal').classList.add('open');
     const done = v => { $('#modal').classList.remove('open'); resolve(v); };
     $('#modalOk').onclick = () => done(true);
     $('#modalCancel').onclick = () => done(false);
   });
+}
+
+// Dota reads its guide list at startup, so whatever we just changed needs a restart.
+async function offerRestart() {
+  await loadState();
+  const go = await confirm({
+    title: T('restartTitle'),
+    text: T(state.steamRunning ? 'restartTextDota' : 'restartTextSteam'),
+    ok: T(state.steamRunning ? 'launchDota' : 'launchBoth'),
+    cancel: T('later'),
+  });
+  if (go) await run('/api/launch', { account });
 }
 
 $('#applyBtn').onclick = async () => {
@@ -480,21 +491,28 @@ $('#applyBtn').onclick = async () => {
   let closeSteam = false;
   if (state.steamRunning) {
     const what = [add.length && T('steamAdd', { n: add.length }), del.length && T('steamDel', { n: del.length })].filter(Boolean).join(' and ');
-    closeSteam = await confirmSteamClose(T('steamModalText', { what }));
+    closeSteam = await confirm({
+      title: T('steamModalTitle'), text: T('steamModalText', { what }),
+      ok: T('closeSteamAndGo'), cancel: T('cancel'),
+    });
     if (!closeSteam) return;
   }
-  await run('/api/apply', {
+  const res = await run('/api/apply', {
     account, closeSteam,
     install: add.map(k => ({ npc: k.split(':')[0], pos: Number(k.split(':')[1]) })),
     remove: del,
   });
+  if (res?.install?.written?.length || res?.remove?.removed?.length) await offerRestart();
 };
 
-$('#updateBtn').onclick = () => run('/api/update', { account });
-$('#launchBtn').onclick = () => run('/api/launch', { account });
+$('#updateBtn').onclick = async () => {
+  const res = await run('/api/update', { account });
+  if (res?.written?.length) await offerRestart();
+};
 
 async function run(url, body) {
   busy = true; updateDock();
+  let result = null;
   const log = $('#log');
   setLogOpen(true);
   log.innerHTML = '';
@@ -512,7 +530,8 @@ async function run(url, body) {
       let i;
       while ((i = buf.indexOf('\n')) >= 0) {
         const msg = JSON.parse(buf.slice(0, i)); buf = buf.slice(i + 1);
-        if (msg.type === 'log') line(msg.text, /✗|Error/.test(msg.text) ? 'err' : msg.text.startsWith('!') ? 'warn' : /^(Done|Removed)/.test(msg.text) ? 'good' : '');
+        if (msg.type === 'done') result = msg.result;
+        else if (msg.type === 'log') line(msg.text, /✗|Error/.test(msg.text) ? 'err' : msg.text.startsWith('!') ? 'warn' : /^(Done|Removed)/.test(msg.text) ? 'good' : '');
         else if (msg.type === 'error') line(T('errorPrefix') + msg.message, 'err');
       }
     }
@@ -524,6 +543,7 @@ async function run(url, body) {
     selectAccount(account, true);
     // Keep pending picks that failed (e.g. D2PT limit) so the user can retry; drop ones that are now in sync.
   }
+  return result;
 }
 
 init();
