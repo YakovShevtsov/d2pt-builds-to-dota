@@ -1,7 +1,7 @@
 # D2PT → Dota 2 гайды
 
 Переносит сборки героев с dota2protracker.com (7000+ MMR) в гайды Dota 2 на твоём аккаунте.
-Нужен только Node.js 22+. Браузер не нужен (используется встроенный в Windows `curl.exe`;
+Готовый `d2pt.exe` — в [релизах](https://github.com/YakovShevtsov/d2pt-builds-to-dota/releases); из исходников нужен Node.js 22+. Браузер не нужен (используется встроенный в Windows `curl.exe`;
 если Cloudflare его не пустит — автоматически берётся любой Chromium-браузер: Chrome, Edge, Яндекс, Opera, Brave, Vivaldi).
 
 ## Страница (обычный способ)
@@ -19,9 +19,21 @@
 
 ## Поделиться с другом
 
-Запусти `pack.bat` (или `node pack.js`) — рядом появится `d2pt-guides.zip` без твоих личных данных
-(список установленных гайдов и кеш не попадают). Другу: распаковать → `start.bat`. Нужны Windows 10/11,
-Node.js 22+ и Steam с Dota 2, запущенной хотя бы раз на его аккаунте.
+Скачать готовый `d2pt.exe` можно в [релизах](https://github.com/YakovShevtsov/d2pt-builds-to-dota/releases).
+Запускается двойным кликом, Node.js для этого не нужен. Нужны Windows 10/11 и Steam
+с Dota 2, запущенной хотя бы раз на его аккаунте.
+
+## Сборка exe
+
+Нужен [Bun](https://bun.sh) (`winget install oven-sh.bun`). Собирается одной командой:
+
+```
+node build.js                 # dist/d2pt.exe для Windows
+node build.js bun-linux-x64   # dist/d2pt для Linux (код под Linux ещё не адаптирован)
+```
+
+Страница, иконки и список предметов вшиваются внутрь файла. Свои данные (список установленных
+гайдов и кеш) exe кладёт в папку `data` рядом с собой.
 
 ## Команды (для продвинутых)
 

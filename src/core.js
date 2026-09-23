@@ -4,10 +4,9 @@ const path = require('path');
 const { createClient, loadItemNames, extractBuild, LimitedError } = require('./d2pt');
 const { renderGuide } = require('./generate');
 const steam = require('./steam');
+const { DATA, OUT, ensureData } = require('./runtime');
 const { t } = require('./i18n');
 
-const ROOT = path.join(__dirname, '..');
-const DATA = path.join(ROOT, 'data');
 const MANIFEST = path.join(DATA, 'manifest.json');
 const MAIN_POS_SHARE = 0.15, MAIN_POS_MIN_MATCHES = 200;
 
@@ -18,7 +17,7 @@ function loadManifest() {
   return m.accounts ? m : { accounts: {} };
 }
 function saveManifest(m) {
-  fs.mkdirSync(DATA, { recursive: true });
+  ensureData();
   fs.writeFileSync(MANIFEST, JSON.stringify(m, null, 2));
 }
 
@@ -114,7 +113,7 @@ async function install({ steamRoot, account, targets, closeSteam = false, dryRun
   } finally { await client.close(); }
   if (!results.length) return summary;
 
-  const guidesDir = dryRun ? path.join(ROOT, 'out') : path.join(acc.dir, 'remote', 'guides');
+  const guidesDir = dryRun ? OUT : path.join(acc.dir, 'remote', 'guides');
   fs.mkdirSync(guidesDir, { recursive: true });
 
   let ts = Math.floor(Date.now() / 1000);
@@ -220,4 +219,4 @@ function status() {
   return { steamRunning: steam.isProcessRunning('steam.exe'), dotaRunning: steam.isProcessRunning('dota2.exe') };
 }
 
-module.exports = { listAccounts, findAccount, getHeroes, resolveSpecs, install, remove, restart, status, mainPositions, posMatches, norm, ROOT, DATA };
+module.exports = { listAccounts, findAccount, getHeroes, resolveSpecs, install, remove, restart, status, mainPositions, posMatches, norm, DATA };
