@@ -13,3 +13,4 @@ node_modules/
 # Packaged build
 dist/
 src/embedded-assets.js
+.bun-cache/
