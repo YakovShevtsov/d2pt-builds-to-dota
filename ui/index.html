@@ -112,6 +112,8 @@
   .modal h2 { margin: 0 0 8px; font-size: 16px; }
   .modal p { margin: 0 0 16px; color: var(--muted); }
   .modal .actions { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+  .modal .check { display: flex; align-items: center; gap: 9px; margin: 0 0 16px; color: var(--text); font-size: 13px; cursor: pointer; }
+  .modal .check input { width: 16px; height: 16px; accent-color: var(--accent); cursor: pointer; }
   .toast { color: var(--bad); padding: 20px; text-align: center; }
   @media (max-width: 640px) { input[type=search] { width: 100%; } .bar { padding: 10px 12px; } main { padding: 12px 12px 160px; } .grid { grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); } }
 </style>
@@ -209,9 +211,9 @@
   <div class="modal">
     <h2 id="modalTitle">Steam needs to be restarted</h2>
     <p id="modalText"></p>
+    <label class="check" id="modalCheckWrap" hidden><input type="checkbox" id="modalCheck"><span id="modalCheckText"></span></label>
     <div class="actions">
       <button class="btn" id="modalCancel">Cancel</button>
-      <button class="btn" id="modalAlt" hidden></button>
       <button class="btn primary" id="modalOk">Restart</button>
     </div>
   </div>
@@ -235,13 +237,13 @@ const S = {
   creditValve: `Dota 2, the hero and item images and the attribute and role icons are property of ${VALVE_LINK}. This tool is free, unofficial and not affiliated with either Valve or D2PT.`,
   reset: 'Reset', updateInstalled: 'Update installed', apply: 'Apply', log: 'Log',
   removeAll: 'Remove all', removeAllTitle: 'Mark every installed build for removal',
-  restartWarnDota: ' Dota is running right now and will be closed — not a good moment if you are in a match.',
   showLog: 'Show log', hideLog: 'Hide log',
   summaryAdd: '<b>+{n}</b> to install', summaryDel: '<b>−{n}</b> to remove', summaryInstalled: 'Installed builds: <b>{n}</b>',
   picTitle: 'Pick the most popular roles: {roles}', picTitleNone: 'none',
   picTitleClear: 'Clear this hero’s pending changes', picTitleDone: 'All its popular roles are already installed',
   posTitle: 'Pos {pos} — {role}: {matches} games{wr}{low}', posTitleWr: ', WR {wr}%', posTitleLow: ' (not enough data)',
-  cancel: 'Cancel', restartNow: 'Restart Steam and Dota', justDoIt: 'Without restarting',
+  cancel: 'Cancel', restartNow: 'Restart',
+  confirmDotaClose: 'Dota is running — I understand it will be closed',
   askTitle: 'Restart Steam and Dota',
   askWhat: 'About to {what} guide(s).', askWhatUpdate: 'About to update the installed guides.',
   askTextSteamClosed: 'Dota only reads its guide list at startup, so it has to be restarted. One click writes the guides, starts Steam, waits until they reach the cloud and launches Dota.',
@@ -461,19 +463,21 @@ function setLogOpen(open) {
 }
 $('#logBtn').onclick = () => setLogOpen(!$('#log').classList.contains('open'));
 
-// Returns 'ok', 'alt' or false. The optional alt button is the "do it, but don't restart" way out.
-function confirm({ title, text, ok, alt, cancel }) {
+// `check` adds a confirmation checkbox that has to be ticked before the primary button works.
+function confirm({ title, text, ok, cancel, check }) {
   return new Promise(resolve => {
     $('#modalTitle').textContent = title;
     $('#modalText').textContent = text;
     $('#modalOk').textContent = ok;
     $('#modalCancel').textContent = cancel;
-    $('#modalAlt').textContent = alt || '';
-    $('#modalAlt').hidden = !alt;
+    $('#modalCheckText').textContent = check || '';
+    $('#modalCheckWrap').hidden = !check;
+    $('#modalCheck').checked = false;
+    $('#modalOk').disabled = !!check;
+    $('#modalCheck').onchange = e => { $('#modalOk').disabled = !e.target.checked; };
     $('#modal').classList.add('open');
-    const done = v => { $('#modal').classList.remove('open'); resolve(v); };
-    $('#modalOk').onclick = () => done('ok');
-    $('#modalAlt').onclick = () => done('alt');
+    const done = v => { $('#modal').classList.remove('open'); $('#modalOk').disabled = false; resolve(v); };
+    $('#modalOk').onclick = () => done(true);
     $('#modalCancel').onclick = () => done(false);
   });
 }
@@ -482,11 +486,11 @@ function confirm({ title, text, ok, alt, cancel }) {
 // restarting are one job: ask once, then do all of it.
 async function ask(what) {
   await loadState();
-  const steamPart = state.steamRunning ? T('askTextSteamRunning') : T('askTextSteamClosed');
   return confirm({
     title: T('askTitle'),
-    text: what + ' ' + steamPart + (state.dotaRunning ? T('restartWarnDota') : ''),
-    ok: T('restartNow'), alt: T('justDoIt'), cancel: T('cancel'),
+    text: what + ' ' + T(state.steamRunning ? 'askTextSteamRunning' : 'askTextSteamClosed'),
+    ok: T('restartNow'), cancel: T('cancel'),
+    check: state.dotaRunning ? T('confirmDotaClose') : null,
   });
 }
 
@@ -496,7 +500,7 @@ $('#applyBtn').onclick = async () => {
   const answer = await ask(T('askWhat', { what }));
   if (!answer) return;
   await run('/api/apply', {
-    account, closeSteam: true, restart: answer === 'ok',
+    account, closeSteam: true, restart: true,
     install: add.map(k => ({ npc: k.split(':')[0], pos: Number(k.split(':')[1]) })),
     remove: del,
   });
@@ -505,7 +509,7 @@ $('#applyBtn').onclick = async () => {
 $('#updateBtn').onclick = async () => {
   const answer = await ask(T('askWhatUpdate'));
   if (!answer) return;
-  await run('/api/update', { account, restart: answer === 'ok' });
+  await run('/api/update', { account, restart: true });
 };
 
 async function run(url, body) {
