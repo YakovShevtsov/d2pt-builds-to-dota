@@ -107,7 +107,9 @@
   .steps { margin: 16px 0; padding-left: 22px; color: var(--muted); }
   .steps li { margin-bottom: 9px; }
   .steps b { color: var(--text); font-weight: 600; }
-  .modal .muted { font-size: 12.5px; }
+  .modal .muted { margin-top: 12px; font-size: 12.5px; }
+  .modal .note { margin: 16px 0 14px; padding-left: 12px; border-left: 2px solid var(--accent); color: var(--muted); font-size: 12.5px; line-height: 1.5; }
+  .modal .note b { color: var(--text); font-weight: 600; }
   .modal.intro .actions { justify-content: center; margin-top: 20px; }
   .modal.intro .actions .btn { padding: 9px 22px; }
   .modal-bg { position: fixed; inset: 0; background: rgba(0,0,0,.6); display: none; place-items: center; z-index: 10; padding: 16px; backdrop-filter: blur(3px); }
@@ -207,6 +209,7 @@
       <li data-i18n-html="introStep2">Hit “Apply”.</li>
       <li data-i18n-html="introStep3">Start Steam and Dota.</li>
     </ol>
+    <p class="note" data-i18n-html="introSkills">Heads up: the skill order only covers levels 1-10.</p>
     <p class="muted" data-i18n="introNote">After a patch, hit “Update installed”.</p>
     <p class="muted" data-i18n-html="introCredit">Data comes from dota2protracker.com.</p>
     <div class="actions"><button class="btn primary" id="introOk" data-i18n="introOk">Got it, let’s go</button></div>
@@ -267,6 +270,7 @@ const S = {
   introStep1: '<b>Pick heroes and roles.</b> Click 1–5 under a hero, or click the portrait to take its most popular roles.',
   introStep2: '<b>Hit “Apply”.</b> If Steam is running, the tool will offer to close it — that’s how Steam picks up new guides.',
   introStep3: '<b>Start Steam and Dota.</b> The selected heroes will have “D2PT Pos 4”, “D2PT Pos 5” guides.',
+  introSkills: '<b>Heads up:</b> the skill order only covers levels 1–10 — that is all D2PT publishes. Items and talents are complete.',
   introNote: 'After a patch, hit “Update installed” — no need to close Steam, just restart Dota. Your own guides are never touched.',
   introCredit: `Data comes from ${D2PT_LINK} and belongs to D2PT; images and icons belong to Valve. This tool is free and unofficial; for the full statistics and analysis go to their site.`,
   introOk: 'Got it, let’s go', errorPrefix: 'Error: ',
