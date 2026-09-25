@@ -14,7 +14,8 @@ const STRINGS = {
     talentTip: '{how}: taken in {pr}, WR {wr} ({n} games). Alternative: {other} — {opr}, WR {owr} ({on} games)',
     overview: 'Build from dota2protracker.com ({pos}, 7000+ MMR, patch {patch}). Most popular build: {matches} matches, WR {wr}. ' +
       'Updated {date}. Item tooltips show the average timing, how often it is bought and its win rate. ' +
-      'Talents are picked by win rate (when taken in ≥{talentPr} of games with ≥{talentN} games), otherwise the most popular one.',
+      'Talents are picked by win rate (when taken in ≥{talentPr} of games with ≥{talentN} games), otherwise the most popular one. ' +
+      'The skill order covers levels 1-10: that is as far as D2PT publishes it.',
   },
   log: {
     account: 'Account: {name}',
