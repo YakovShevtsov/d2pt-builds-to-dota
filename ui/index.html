@@ -25,6 +25,8 @@
   h1 .logo { width: 22px; height: 22px; object-fit: contain; flex: none; }
   h1 .logo-d2pt { border-radius: 5px; }
   h1 .ver { color: var(--muted); font-size: 11.5px; font-weight: 400; margin-left: 6px; align-self: flex-start; }
+  h1 .stack { display: flex; flex-direction: column; line-height: 1.05; }
+  h1 .stack small { font-size: 12px; font-weight: 600; letter-spacing: .06em; color: var(--muted); }
   .spacer { flex: 1; }
   /* All header controls share one height, radius and type size. */
   header { --ctl-h: 34px; --ctl-r: 8px; }
@@ -127,7 +129,7 @@
 <body>
 <header>
   <div class="bar">
-    <h1><img class="logo logo-d2pt" src="/assets/d2pt.ico" alt="">D2PT <span class="arrow">→</span> <img class="logo" src="/assets/dota.png" alt="">Dota 2<span class="ver" id="version"></span></h1>
+    <h1><img class="logo logo-d2pt" src="/assets/d2pt.ico" alt=""><span class="stack">D2PT<small>Builds</small></span> <span class="arrow">→</span> <img class="logo" src="/assets/dota.png" alt="">Dota 2<span class="ver" id="version"></span></h1>
     <label class="chip"><span data-i18n="account">Account</span> <select id="account"></select></label>
     <span class="chip" id="steamChip"><span class="dot"></span><span class="txt">Steam</span></span>
     <span class="chip" id="dotaChip"><span class="dot"></span><span class="txt">Dota</span></span>
