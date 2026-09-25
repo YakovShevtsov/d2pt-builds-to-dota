@@ -72,7 +72,7 @@
   .pos.del { background: transparent; color: var(--muted); border-color: var(--line); text-decoration: line-through; } /* will be removed */
   .empty { color: var(--muted); padding: 40px 0; text-align: center; }
   /* Parked in the bottom-right corner, just above the dock and next to the scrollbar. */
-  .credits { position: fixed; right: 18px; bottom: calc(var(--dock-h, 64px) + 18px); z-index: 4; width: 360px; display: flex; flex-direction: column; gap: 10px; }
+  .credits { position: fixed; right: 18px; bottom: calc(var(--dock-h, 64px) + 18px); z-index: 4; width: 420px; display: flex; flex-direction: column; gap: 10px; }
   .credit { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--panel); color: var(--muted); font-size: 12.5px; box-shadow: 0 10px 24px rgba(0,0,0,.45); }
   .credit img { width: 26px; height: 26px; object-fit: contain; border-radius: 6px; flex: none; }
   .credit img.valve { width: 62px; height: 26px; border-radius: 0; opacity: .95; }
@@ -240,7 +240,7 @@ const S = {
   legendHint: 'Click the portrait to pick the hero’s most popular roles',
   nothingFound: 'Nothing found', loadingHeroes: 'Loading heroes from D2PT…', heroesFailed: 'Could not load heroes: {err}',
   creditText: `All build data comes from ${D2PT_LINK} and belongs to D2PT — including the skill order, which they publish for levels 1-10 only. <b>For the full statistics, analysis and meta breakdowns go to their site —</b> this is just a tiny slice of what they offer.`,
-  creditValve: `Dota 2, the hero and item images and the attribute and role icons are property of ${VALVE_LINK}. This tool is free, unofficial and not affiliated with either Valve or D2PT.`,
+  creditValve: `Dota 2, the hero and item images and the attribute and role icons are property of ${VALVE_LINK}. This tool is free, unofficial and not affiliated with Valve.`,
   reset: 'Reset', updateInstalled: 'Update installed', apply: 'Apply', log: 'Log',
   removeAll: 'Remove all', removeAllTitle: 'Mark every installed build for removal',
   showLog: 'Show log', hideLog: 'Hide log',
